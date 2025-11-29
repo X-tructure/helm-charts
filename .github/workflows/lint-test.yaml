@@ -1,0 +1,102 @@
+name: Lint and Test Charts
+
+on:
+  pull_request:
+    paths:
+      - 'charts/**'
+      - '.github/workflows/lint-test.yaml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'charts/**'
+      - '.github/workflows/lint-test.yaml'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.13.0
+
+      - name: Run Helm Lint
+        run: |
+          helm lint charts/obsidian/
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up chart-testing
+        uses: helm/chart-testing-action@v2.6.1
+
+      - name: Run chart-testing (lint)
+        run: ct lint --config .github/ct.yaml --all
+
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.13.0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up chart-testing
+        uses: helm/chart-testing-action@v2.6.1
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.8.0
+        with:
+          wait: 120s
+
+      - name: Run chart-testing (install)
+        run: ct install --config .github/ct.yaml --all
+
+  template:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.13.0
+
+      - name: Helm Template - Default Values
+        run: |
+          helm template test-release charts/obsidian/ > /dev/null
+
+      - name: Helm Template - With Ingress
+        run: |
+          helm template test-release charts/obsidian/ \
+            -f examples/values-with-ingress.yaml > /dev/null
+
+      - name: Helm Template - Production
+        run: |
+          helm template test-release charts/obsidian/ \
+            -f examples/values-production.yaml > /dev/null
+
+      - name: Helm Template - Existing PVC
+        run: |
+          helm template test-release charts/obsidian/ \
+            --set persistence.existingClaim=my-pvc > /dev/null
