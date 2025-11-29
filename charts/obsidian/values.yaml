@@ -36,15 +36,15 @@ podSecurityContext:
   fsGroup: 1000
 
 # Security context for the container
-# Maps to PUID/PGID for LinuxServer.io containers
-securityContext:
-  runAsUser: 1000
-  runAsGroup: 1000
+# LinuxServer.io containers MUST start as root to perform user setup via PUID/PGID
+# The container will automatically switch to the specified PUID/PGID after initialization
+# DO NOT set runAsUser/runAsGroup here - it breaks the container's init system
+securityContext: {}
   # capabilities:
   #   drop:
   #   - ALL
   # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
+  # Note: runAsNonRoot: true is incompatible with LinuxServer.io containers
 
 # Service configuration
 service:

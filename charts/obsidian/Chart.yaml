@@ -6,7 +6,7 @@ description: A Helm chart for deploying Obsidian note-taking application with we
 type: application
 
 # Chart version - follows SemVer 2
-version: 0.1.0
+version: 0.1.1
 
 # Application version - tracks Obsidian release version
 # Set to "latest" to auto-detect the latest Obsidian version from obsidianmd/obsidian-releases
