@@ -22,7 +22,6 @@
 *.tmproj
 .vscode/
 # Documentation and examples
-README.md
+# Note: README.md is intentionally NOT ignored - it's needed for Artifact Hub
 OWNERS
 examples/
-*.md
