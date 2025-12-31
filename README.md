@@ -10,6 +10,7 @@ A collection of production-ready Helm charts for deploying applications on Kuber
 |-------|-------------|---------|-------------|
 | [obsidian](charts/obsidian/) | Obsidian note-taking app with web GUI | ![Version](https://img.shields.io/badge/dynamic/yaml?url=https://raw.githubusercontent.com/thinking-and-coding/obsidian-helm-chart/main/charts/obsidian/Chart.yaml&label=version&query=$.version&color=blue) | ![AppVersion](https://img.shields.io/badge/dynamic/yaml?url=https://raw.githubusercontent.com/thinking-and-coding/obsidian-helm-chart/main/charts/obsidian/Chart.yaml&label=app&query=$.appVersion&color=green) |
 | [docetl](charts/docetl/) | Document processing pipeline with LLM operations | ![Version](https://img.shields.io/badge/dynamic/yaml?url=https://raw.githubusercontent.com/thinking-and-coding/obsidian-helm-chart/main/charts/docetl/Chart.yaml&label=version&query=$.version&color=blue) | ![AppVersion](https://img.shields.io/badge/dynamic/yaml?url=https://raw.githubusercontent.com/thinking-and-coding/obsidian-helm-chart/main/charts/docetl/Chart.yaml&label=app&query=$.appVersion&color=green) |
+| [docling-serve](charts/docling-serve/) | AI-powered document conversion API service | ![Version](https://img.shields.io/badge/dynamic/yaml?url=https://raw.githubusercontent.com/thinking-and-coding/obsidian-helm-chart/main/charts/docling-serve/Chart.yaml&label=version&query=$.version&color=blue) | ![AppVersion](https://img.shields.io/badge/dynamic/yaml?url=https://raw.githubusercontent.com/thinking-and-coding/obsidian-helm-chart/main/charts/docling-serve/Chart.yaml&label=app&query=$.appVersion&color=green) |
 
 ## Quick Start
 
@@ -44,6 +45,11 @@ Each chart has its own documentation:
   helm install my-docetl thinking-and-coding/docetl
   ```
 
+- **[Docling-Serve](charts/docling-serve/)**: AI-powered document conversion API service
+  ```bash
+  helm install my-docling thinking-and-coding/docling-serve
+  ```
+
 ## Repository Structure
 
 ```
@@ -57,6 +63,13 @@ helm-charts/
 │   │   ├── examples/       # Example configurations
 │   │   └── docs/           # Detailed documentation
 │   ├── docetl/             # DocETL document processing chart
+│   │   ├── Chart.yaml      # Chart metadata
+│   │   ├── values.yaml     # Default configuration
+│   │   ├── README.md       # Chart documentation
+│   │   ├── templates/      # Kubernetes manifests
+│   │   ├── examples/       # Example configurations
+│   │   └── docs/           # Detailed documentation
+│   ├── docling-serve/      # Docling-Serve AI document conversion chart
 │   │   ├── Chart.yaml      # Chart metadata
 │   │   ├── values.yaml     # Default configuration
 │   │   ├── README.md       # Chart documentation
@@ -180,6 +193,27 @@ helm install docetl thinking-and-coding/docetl \
 ```
 
 📖 [Full Documentation](charts/docetl/) | 💡 [Examples](charts/docetl/examples/)
+
+### Docling-Serve
+
+Deploy AI-powered document conversion API service.
+
+**Key Features:**
+- CPU-optimized defaults with GPU support
+- FastAPI with OpenAPI documentation
+- Convert PDF/DOCX/PPTX to Markdown/JSON/HTML
+- Optional API key authentication
+- Ephemeral or persistent storage
+- Production-ready configurations
+
+**Quick Install:**
+```bash
+helm install docling thinking-and-coding/docling-serve \
+  --set apiKey.enabled=true \
+  --set scratch.persistent=true
+```
+
+📖 [Full Documentation](charts/docling-serve/) | 💡 [Examples](charts/docling-serve/examples/)
 
 ## Contributing
 

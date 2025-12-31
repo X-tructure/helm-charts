@@ -51,6 +51,35 @@ helm-charts/
 │   │   │   └── values-prod.yaml       # Production setup
 │   │   └── docs/                      # Detailed documentation (Phase 3)
 │   │
+│   ├── docling-serve/                 # Docling-Serve AI document conversion chart
+│   │   ├── Chart.yaml                 # Chart metadata
+│   │   ├── values.yaml                # Default configuration (CPU-optimized)
+│   │   ├── README.md                  # Chart documentation
+│   │   │
+│   │   ├── templates/                 # Kubernetes manifests
+│   │   │   ├── _helpers.tpl           # Template helpers
+│   │   │   ├── deployment.yaml        # Deployment resource
+│   │   │   ├── service.yaml           # Service resource
+│   │   │   ├── ingress.yaml           # Ingress resource (optional)
+│   │   │   ├── pvc.yaml               # PersistentVolumeClaim (optional)
+│   │   │   ├── secret.yaml            # API key secret (optional)
+│   │   │   ├── serviceaccount.yaml    # ServiceAccount (optional)
+│   │   │   ├── NOTES.txt              # Post-install notes
+│   │   │   └── tests/                 # Helm test resources
+│   │   │       └── test-connection.yaml
+│   │   │
+│   │   ├── examples/                  # Example configurations
+│   │   │   ├── values-basic.yaml      # Minimal testing setup
+│   │   │   ├── values-production.yaml # Production-ready
+│   │   │   ├── values-with-ingress.yaml # External access with TLS
+│   │   │   └── values-gpu.yaml        # GPU acceleration (CUDA)
+│   │   │
+│   │   └── docs/                      # Detailed documentation
+│   │       ├── configuration.md       # Parameter reference
+│   │       ├── installation.md        # Installation guide
+│   │       ├── troubleshooting.md     # Common issues
+│   │       └── upgrade.md             # Upgrade instructions
+│   │
 │   └── [future-charts]/               # Additional charts
 │
 ├── docs/                              # Shared documentation

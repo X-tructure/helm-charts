@@ -9,6 +9,7 @@ This is a multi-chart Helm repository for deploying various applications on Kube
 **Current Charts:**
 - **Obsidian**: Note-taking application using LinuxServer.io Docker image with Selkies web-based GUI
 - **DocETL**: Document processing pipeline with LLM operations (backend + frontend)
+- **Docling-Serve**: AI-powered document conversion API service (FastAPI wrapper for Docling)
 
 The repository uses automated CI/CD pipelines for linting, testing, and releasing charts.
 
@@ -88,6 +89,27 @@ helm install my-docetl ./charts/docetl
 
 # Install with production values
 helm install my-docetl ./charts/docetl -f charts/docetl/examples/values-prod.yaml
+```
+
+#### Docling-Serve Chart Specific
+
+```bash
+# Lint the Docling-Serve chart
+helm lint charts/docling-serve/
+
+# Template with examples
+helm template test charts/docling-serve/ -f charts/docling-serve/examples/values-basic.yaml
+helm template test charts/docling-serve/ -f charts/docling-serve/examples/values-production.yaml
+helm template test charts/docling-serve/ -f charts/docling-serve/examples/values-gpu.yaml
+
+# Install locally for testing
+helm install my-docling ./charts/docling-serve
+
+# Install with production values
+helm install my-docling ./charts/docling-serve -f charts/docling-serve/examples/values-production.yaml
+
+# Install with GPU support
+helm install my-docling ./charts/docling-serve -f charts/docling-serve/examples/values-gpu.yaml
 ```
 
 ### Chart Testing (CI/CD)
@@ -215,6 +237,52 @@ The Obsidian chart has specific architectural decisions documented in detail:
    - Mounted at `/dev/shm` with configurable size (default: 1Gi)
    - Prevents application crashes and rendering issues
 
+### Docling-Serve Chart Architecture
+
+The Docling-Serve chart is designed for simplicity and production readiness:
+
+#### Key Architectural Patterns
+
+1. **CPU-First Design**:
+   - Defaults to CPU-optimized image (`docling-serve-cpu`)
+   - GPU support available via examples (`values-gpu.yaml`)
+   - Container images: 4.4GB (CPU) to 11GB (GPU variants)
+
+2. **Simple Local Engine**:
+   - Uses built-in thread-based processing by default
+   - No external dependencies (Redis/RQ) required
+   - Configurable worker threads and processing parallelism
+
+3. **FastAPI Service**:
+   - RESTful API for document conversion
+   - OpenAPI/Swagger documentation at `/docs`
+   - Optional Gradio UI at `/ui` (disabled by default)
+   - Port 5001 (HTTP)
+
+4. **Security Model**:
+   - Runs as non-root user (UID/GID 1001)
+   - Drops all capabilities
+   - Optional API key authentication with auto-generation
+   - Cannot use readOnlyRootFilesystem (needs `/tmp/docling` writes)
+
+5. **Storage Strategy**:
+   - Ephemeral by default (emptyDir)
+   - Models pre-baked into container image
+   - Optional persistent volume for scratch space
+   - Memory-backed emptyDir option for performance
+
+6. **Health Probes**:
+   - Startup probe: 200s window for model loading
+   - Readiness probe: Fast check (5s period)
+   - Liveness probe: Conservative (10s period)
+   - All probes use `GET /` endpoint
+
+7. **GPU Support** (Optional):
+   - CUDA 12.6 (`docling-serve-cu126`) or 12.8 (`docling-serve-cu128`)
+   - Requires NVIDIA GPU Operator
+   - Node selector for GPU nodes
+   - Increased memory allocation (4-16Gi)
+
 ### Template Helpers (_helpers.tpl)
 
 Each chart should define helper functions for consistency. Example (Obsidian):
@@ -267,18 +335,21 @@ Standard structure (see individual charts for specifics):
 ### Security Contexts
 
 - Each chart may have different security requirements
-- Obsidian: Never add `runAsUser` or `runAsGroup` to container security context
+- **Obsidian**: Never add `runAsUser` or `runAsGroup` to container security context (LinuxServer.io requirement)
+- **Docling-Serve**: Runs as non-root user 1001, drops all capabilities, cannot use readOnlyRootFilesystem
 - Document security requirements in chart-specific README
 
 ### Persistence
 
 - Use consistent parameter naming across charts:
-  - `persistence.enabled`
-  - `persistence.size`
-  - `persistence.storageClass`
-  - `persistence.existingClaim`
+  - `persistence.enabled` (Obsidian, DocETL)
+  - `scratch.persistent` (Docling-Serve - different pattern for ephemeral-first design)
+  - `persistence.size` / `scratch.pvc.size`
+  - `persistence.storageClass` / `scratch.pvc.storageClass`
+  - `persistence.existingClaim` (Obsidian)
 - Default storage class when `storageClass` is empty string
 - Use `storageClass: "-"` to disable dynamic provisioning
+- **Docling-Serve**: Also supports memory-backed emptyDir via `scratch.emptyDir.medium: "Memory"`
 
 ### Health Probes
 
