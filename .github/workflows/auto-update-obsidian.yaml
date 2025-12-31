@@ -15,9 +15,14 @@ permissions:
   pull-requests: write
   issues: write
 
+concurrency:
+  group: auto-update-obsidian-${{ github.ref }}
+  cancel-in-progress: false  # Don't cancel running updates, queue them instead
+
 jobs:
   check-updates:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       has_update: ${{ steps.check.outputs.has_update }}
       latest_version: ${{ steps.check.outputs.latest_version }}
@@ -31,36 +36,88 @@ jobs:
       - name: Check for new Docker image version
         id: check
         run: |
-          # Get current appVersion from Chart.yaml
-          CURRENT_VERSION=$(grep '^appVersion:' charts/obsidian/Chart.yaml | awk '{print $2}' | tr -d '"')
-          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-          echo "Current version: $CURRENT_VERSION"
+          set -euo pipefail  # Exit on error, undefined vars, pipe failures
 
-          # Get latest release from linuxserver/docker-obsidian
-          LATEST_RELEASE=$(curl -s https://api.github.com/repos/linuxserver/docker-obsidian/releases/latest)
+          # Chart path
+          CHART_PATH="charts/obsidian/Chart.yaml"
+
+          # Validate Chart.yaml exists
+          if [ ! -f "$CHART_PATH" ]; then
+            echo "::error::Chart.yaml not found at $CHART_PATH"
+            exit 1
+          fi
+
+          # Get current appVersion from Chart.yaml
+          CURRENT_VERSION=$(grep '^appVersion:' "$CHART_PATH" | awk '{print $2}' | tr -d '"')
+
+          if [ -z "$CURRENT_VERSION" ]; then
+            echo "::error::Failed to extract appVersion from Chart.yaml"
+            exit 1
+          fi
+
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "::notice::Current version: $CURRENT_VERSION"
+
+          # Get latest release from linuxserver/docker-obsidian with authentication and retry logic
+          LATEST_RELEASE=$(curl -sSf \
+            --retry 3 \
+            --retry-delay 5 \
+            --max-time 30 \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/linuxserver/docker-obsidian/releases/latest) || {
+            echo "::error::Failed to fetch latest release from GitHub API after retries"
+            exit 1
+          }
+
+          # Verify response is valid JSON with required fields
+          if ! echo "$LATEST_RELEASE" | jq -e '.tag_name' > /dev/null 2>&1; then
+            echo "::error::Invalid API response - missing tag_name field"
+            echo "::debug::Response: $LATEST_RELEASE"
+            exit 1
+          fi
+
+          # Check for API error messages
+          if echo "$LATEST_RELEASE" | jq -e 'has("message")' > /dev/null 2>&1; then
+            ERROR_MSG=$(echo "$LATEST_RELEASE" | jq -r '.message')
+            echo "::error::GitHub API Error: $ERROR_MSG"
+            exit 1
+          fi
+
+          # Extract version and metadata (no 'v' prefix for linuxserver tags)
           LATEST_VERSION=$(echo "$LATEST_RELEASE" | jq -r '.tag_name')
-          RELEASE_DATE=$(echo "$LATEST_RELEASE" | jq -r '.published_at')
-          RELEASE_BODY=$(echo "$LATEST_RELEASE" | jq -r '.body')
-          RELEASE_URL=$(echo "$LATEST_RELEASE" | jq -r '.html_url')
+          RELEASE_DATE=$(echo "$LATEST_RELEASE" | jq -r '.published_at // "unknown"')
+          RELEASE_BODY=$(echo "$LATEST_RELEASE" | jq -r '.body // "No release notes available"')
+          RELEASE_URL=$(echo "$LATEST_RELEASE" | jq -r '.html_url // ""')
+
+          # Validate version was extracted
+          if [ -z "$LATEST_VERSION" ] || [ "$LATEST_VERSION" = "null" ]; then
+            echo "::error::Failed to extract version from latest release"
+            exit 1
+          fi
 
           echo "latest_version=$LATEST_VERSION" >> $GITHUB_OUTPUT
           echo "release_date=$RELEASE_DATE" >> $GITHUB_OUTPUT
           echo "changelog_url=$RELEASE_URL" >> $GITHUB_OUTPUT
-          echo "Latest version: $LATEST_VERSION"
+          echo "::notice::Latest version: $LATEST_VERSION"
 
           # Save release notes to file for multi-line handling
-          echo "$RELEASE_BODY" > /tmp/release_notes.txt
+          echo "$RELEASE_BODY" > /tmp/release_notes.txt || {
+            echo "::error::Failed to write release notes to temporary file"
+            exit 1
+          }
 
           # Check if update is needed (skip if current is "latest" or versions match)
           if [ "$CURRENT_VERSION" = "latest" ]; then
             echo "has_update=true" >> $GITHUB_OUTPUT
-            echo "Update check: Current version is 'latest', will update to track $LATEST_VERSION"
+            echo "::notice::Current version is 'latest', will update to track $LATEST_VERSION"
           elif [ "$CURRENT_VERSION" != "$LATEST_VERSION" ]; then
             echo "has_update=true" >> $GITHUB_OUTPUT
-            echo "Update available: $CURRENT_VERSION -> $LATEST_VERSION"
+            echo "::notice::Update available: $CURRENT_VERSION -> $LATEST_VERSION"
           else
             echo "has_update=false" >> $GITHUB_OUTPUT
-            echo "No update needed"
+            echo "::notice::No update needed - already at latest version"
           fi
 
       - name: Extract changelog summary
@@ -89,14 +146,16 @@ jobs:
         if: steps.check.outputs.has_update == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: changelog
+          name: changelog-${{ github.run_id }}
           path: /tmp/changelog_summary.md
-          retention-days: 5
+          retention-days: 1
+          if-no-files-found: error
 
   notify:
     needs: check-updates
     if: needs.check-updates.outputs.has_update == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -104,7 +163,9 @@ jobs:
       - name: Download changelog
         uses: actions/download-artifact@v4
         with:
-          name: changelog
+          name: changelog-${{ github.run_id }}
+          path: .
+        continue-on-error: false
 
       - name: Create GitHub Issue for notification
         if: vars.DISABLE_ISSUE_NOTIFICATION != 'true' && vars.AUTO_MERGE != 'true'
@@ -176,6 +237,7 @@ jobs:
     needs: check-updates
     if: needs.check-updates.outputs.has_update == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -191,38 +253,78 @@ jobs:
       - name: Download changelog
         uses: actions/download-artifact@v4
         with:
-          name: changelog
+          name: changelog-${{ github.run_id }}
+          path: .
+        continue-on-error: false
+
+      - name: Install yq
+        uses: mikefarah/yq@v4.40.5
 
       - name: Update Chart.yaml
         id: update_chart
         run: |
-          LATEST_VERSION="${{ needs.check-updates.outputs.latest_version }}"
-          CURRENT_CHART_VERSION=$(grep '^version:' charts/obsidian/Chart.yaml | awk '{print $2}')
+          set -euo pipefail
 
-          # Parse version components (assuming semver: MAJOR.MINOR.PATCH)
-          MAJOR=$(echo $CURRENT_CHART_VERSION | cut -d. -f1)
-          MINOR=$(echo $CURRENT_CHART_VERSION | cut -d. -f2)
-          PATCH=$(echo $CURRENT_CHART_VERSION | cut -d. -f3)
+          LATEST_VERSION="${{ needs.check-updates.outputs.latest_version }}"
+          CHART_PATH="charts/obsidian/Chart.yaml"
+
+          # Get current chart version using yq
+          CURRENT_CHART_VERSION=$(yq eval '.version' "$CHART_PATH")
+
+          if [ -z "$CURRENT_CHART_VERSION" ] || [ "$CURRENT_CHART_VERSION" = "null" ]; then
+            echo "::error::Failed to read current chart version"
+            exit 1
+          fi
+
+          echo "::notice::Current chart version: $CURRENT_CHART_VERSION"
+
+          # Parse semver components with validation
+          if ! [[ "$CURRENT_CHART_VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "::error::Chart version '$CURRENT_CHART_VERSION' is not valid semver (MAJOR.MINOR.PATCH)"
+            exit 1
+          fi
+
+          MAJOR="${BASH_REMATCH[1]}"
+          MINOR="${BASH_REMATCH[2]}"
+          PATCH="${BASH_REMATCH[3]}"
 
           # Increment patch version
           NEW_PATCH=$((PATCH + 1))
           NEW_CHART_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
 
           echo "new_chart_version=$NEW_CHART_VERSION" >> $GITHUB_OUTPUT
-          echo "Updating chart version: $CURRENT_CHART_VERSION -> $NEW_CHART_VERSION"
+          echo "::notice::New chart version: $CURRENT_CHART_VERSION -> $NEW_CHART_VERSION"
 
-          # Update appVersion
-          sed -i.bak "s/^appVersion: .*/appVersion: \"$LATEST_VERSION\"/" charts/obsidian/Chart.yaml
+          # Create backup before modification
+          cp "$CHART_PATH" "${CHART_PATH}.backup"
 
-          # Update chart version
-          sed -i.bak "s/^version: .*/version: $NEW_CHART_VERSION/" charts/obsidian/Chart.yaml
+          # Update using yq (atomic YAML-aware updates)
+          yq eval ".appVersion = \"$LATEST_VERSION\"" -i "$CHART_PATH"
+          yq eval ".version = \"$NEW_CHART_VERSION\"" -i "$CHART_PATH"
 
-          # Clean up backup files
-          rm charts/obsidian/Chart.yaml.bak
+          # Verify changes were applied correctly
+          VERIFY_APP_VERSION=$(yq eval '.appVersion' "$CHART_PATH")
+          VERIFY_CHART_VERSION=$(yq eval '.version' "$CHART_PATH")
 
-          # Show changes
-          echo "Updated Chart.yaml:"
-          cat charts/obsidian/Chart.yaml | grep -E '^(version|appVersion):'
+          if [ "$VERIFY_APP_VERSION" != "$LATEST_VERSION" ]; then
+            echo "::error::Failed to update appVersion (expected: $LATEST_VERSION, got: $VERIFY_APP_VERSION)"
+            mv "${CHART_PATH}.backup" "$CHART_PATH"
+            exit 1
+          fi
+
+          if [ "$VERIFY_CHART_VERSION" != "$NEW_CHART_VERSION" ]; then
+            echo "::error::Failed to update chart version (expected: $NEW_CHART_VERSION, got: $VERIFY_CHART_VERSION)"
+            mv "${CHART_PATH}.backup" "$CHART_PATH"
+            exit 1
+          fi
+
+          # Clean up backup
+          rm "${CHART_PATH}.backup"
+
+          # Show changes for verification
+          echo "::group::Updated Chart.yaml"
+          yq eval '. | select(.version, .appVersion)' "$CHART_PATH"
+          echo "::endgroup::"
 
       - name: Create Pull Request
         if: vars.AUTO_MERGE != 'true'
@@ -265,6 +367,31 @@ jobs:
             auto-update
           reviewers: ${{ vars.PR_REVIEWERS }}
 
+      - name: Validate AUTO_MERGE configuration
+        if: vars.AUTO_MERGE == 'true'
+        run: |
+          echo "::warning::AUTO_MERGE is enabled - changes will be pushed directly to main branch"
+          echo "::warning::This bypasses all code review and testing processes"
+
+          # Check if this is production repository (adjust repo name as needed)
+          if [ "${{ github.repository }}" != "thinking-and-coding/helm-charts-test" ]; then
+            echo "::error::AUTO_MERGE should only be enabled in test repositories"
+            echo "::error::For production, use Pull Request workflow with required reviews"
+            echo "::error::Current repository: ${{ github.repository }}"
+            # Uncomment the next line to enforce this check:
+            # exit 1
+          fi
+
+          # Require explicit confirmation via repository variable
+          if [ "${{ vars.AUTO_MERGE_CONFIRMED }}" != "true" ]; then
+            echo "::error::AUTO_MERGE requires AUTO_MERGE_CONFIRMED=true variable to be set"
+            echo "::error::This is a safety check to prevent accidental direct commits to main"
+            echo "::error::Set this variable in GitHub repository settings: Settings > Secrets and variables > Actions > Variables"
+            exit 1
+          fi
+
+          echo "::notice::AUTO_MERGE validation passed"
+
       - name: Commit and create release tag
         if: vars.AUTO_MERGE == 'true'
         run: |
@@ -283,8 +410,12 @@ jobs:
 
           Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 
-          # Push changes to main
-          git push origin main
+          # Push changes to main (using --force-with-lease for safety)
+          if ! git push --force-with-lease origin main; then
+            echo "::error::Failed to push to main - branch may have been updated"
+            echo "::error::Manual intervention required"
+            exit 1
+          fi
 
           # Create and push tag
           git tag -a "v${NEW_VERSION}" -m "Release v${NEW_VERSION}
