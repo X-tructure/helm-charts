@@ -1,0 +1,55 @@
+# Production configuration example for Docling-Serve Helm Chart
+# Includes security, performance optimizations, and monitoring
+
+# Enable API key authentication for security
+apiKey:
+  enabled: true
+  # Provide via --set or external secret manager for security
+  # value: ""  # Leave empty to auto-generate or use existingSecret
+
+# Production resource allocation
+resources:
+  requests:
+    cpu: 500m
+    memory: 2Gi
+  limits:
+    cpu: 2
+    memory: 8Gi
+
+# Enable persistent scratch storage for large workloads
+scratch:
+  persistent: true
+  pvc:
+    size: 50Gi
+    # Use appropriate storage class for your environment
+    storageClass: "fast-ssd"
+
+# Performance tuning for production workloads
+env:
+  # Increase worker processes
+  uvicornWorkers: "2"
+  # More local processing workers
+  engineLocalNumWorkers: "4"
+  # More threads per request
+  numThreads: "8"
+  # Ensure models loaded at boot
+  loadModelsAtBoot: "true"
+
+# Add pod annotations for monitoring
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "5001"
+  prometheus.io/path: "/metrics"
+
+# Node affinity for dedicated workload nodes (optional)
+# Uncomment and adjust for your environment
+# nodeSelector:
+#   workload: docling-serve
+#   environment: production
+
+# Tolerations for resource-intensive workload nodes (optional)
+# tolerations:
+#   - key: "high-memory"
+#     operator: "Equal"
+#     value: "true"
+#     effect: "NoSchedule"

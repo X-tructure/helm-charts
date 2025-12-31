@@ -1,0 +1,40 @@
+# Ingress configuration example for Docling-Serve Helm Chart
+# External access with TLS and authentication
+
+# Enable ingress for external access
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # Important: Allow large document uploads (default nginx limit is 1m)
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    # Increase timeouts for long-running document conversions
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+  hosts:
+    - host: docling.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: docling-serve-tls
+      hosts:
+        - docling.example.com
+
+# Enable API key authentication for external access
+apiKey:
+  enabled: true
+  # Recommended: Use existing secret from secret manager
+  existingSecret: "docling-api-key-prod"
+  existingSecretKey: "api-key"
+
+# Production resource allocation
+resources:
+  requests:
+    cpu: 500m
+    memory: 2Gi
+  limits:
+    cpu: 2
+    memory: 6Gi

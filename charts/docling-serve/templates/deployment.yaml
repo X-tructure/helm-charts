@@ -1,0 +1,126 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "docling-serve.fullname" . }}
+  labels:
+    {{- include "docling-serve.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  {{- with .Values.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "docling-serve.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- if and .Values.apiKey.enabled (not .Values.apiKey.existingSecret) }}
+        # Force pod restart when API key secret changes
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "docling-serve.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "docling-serve.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: {{ .Chart.Name }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: {{ include "docling-serve.image" . }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.env.uvicornPort | int }}
+          protocol: TCP
+        env:
+        # Uvicorn server configuration
+        - name: UVICORN_HOST
+          value: {{ .Values.env.uvicornHost | quote }}
+        - name: UVICORN_PORT
+          value: {{ .Values.env.uvicornPort | quote }}
+        - name: UVICORN_WORKERS
+          value: {{ .Values.env.uvicornWorkers | quote }}
+        # Docling-serve application configuration
+        - name: DOCLING_SERVE_ENABLE_UI
+          value: {{ .Values.env.enableUI | quote }}
+        - name: DOCLING_SERVE_LOAD_MODELS_AT_BOOT
+          value: {{ .Values.env.loadModelsAtBoot | quote }}
+        - name: DOCLING_SERVE_ENG_KIND
+          value: {{ .Values.env.engineKind | quote }}
+        - name: DOCLING_SERVE_ENG_LOC_NUM_WORKERS
+          value: {{ .Values.env.engineLocalNumWorkers | quote }}
+        - name: DOCLING_SERVE_SCRATCH_PATH
+          value: {{ .Values.env.scratchPath | quote }}
+        - name: DOCLING_SERVE_SINGLE_USE_RESULTS
+          value: {{ .Values.env.singleUseResults | quote }}
+        # Performance configuration
+        - name: DOCLING_NUM_THREADS
+          value: {{ .Values.env.numThreads | quote }}
+        - name: DOCLING_DEVICE
+          value: {{ .Values.env.device | quote }}
+        {{- if .Values.apiKey.enabled }}
+        # API key authentication
+        - name: DOCLING_SERVE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "docling-serve.apiKeySecretName" . }}
+              key: {{ .Values.apiKey.existingSecretKey }}
+        {{- end }}
+        # Extra environment variables
+        {{- with .Values.extraEnv }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        volumeMounts:
+        - name: scratch
+          mountPath: {{ .Values.env.scratchPath }}
+        {{- with .Values.livenessProbe }}
+        livenessProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.readinessProbe }}
+        readinessProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.startupProbe }}
+        startupProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+      volumes:
+      - name: scratch
+        {{- if .Values.scratch.persistent }}
+        persistentVolumeClaim:
+          claimName: {{ include "docling-serve.fullname" . }}-scratch
+        {{- else }}
+        emptyDir:
+          {{- with .Values.scratch.emptyDir.medium }}
+          medium: {{ . }}
+          {{- end }}
+          {{- with .Values.scratch.emptyDir.sizeLimit }}
+          sizeLimit: {{ . }}
+          {{- end }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

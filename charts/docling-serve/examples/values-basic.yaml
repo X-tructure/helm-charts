@@ -1,0 +1,22 @@
+# Basic configuration example for Docling-Serve Helm Chart
+# Minimal settings for quick testing and development
+
+# Reduce resources for testing environments
+resources:
+  requests:
+    cpu: 100m
+    memory: 512Mi
+  limits:
+    cpu: 500m
+    memory: 2Gi
+
+# Disable model loading at boot for faster startup
+# Models will be loaded on first conversion request
+env:
+  loadModelsAtBoot: "false"
+
+# Use memory-backed scratch for faster I/O
+scratch:
+  emptyDir:
+    medium: "Memory"
+    sizeLimit: 2Gi

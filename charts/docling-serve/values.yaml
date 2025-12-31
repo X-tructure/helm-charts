@@ -1,0 +1,242 @@
+# Default values for docling-serve Helm chart
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Number of replicas
+replicaCount: 1
+
+# Container image configuration
+image:
+  # Default to CPU variant from GitHub Container Registry
+  # For GPU support, see examples/values-gpu.yaml
+  repository: ghcr.io/docling-project/docling-serve-cpu
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Deployment strategy configuration
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    # Ensure zero downtime during updates
+    maxUnavailable: 0
+    maxSurge: 1
+
+# Service account configuration
+serviceAccount:
+  # Specifies whether a service account should be created
+  # Docling-serve doesn't need Kubernetes API access, so disabled by default
+  create: false
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod security context
+# fsGroup controls ownership of mounted volumes
+podSecurityContext:
+  fsGroup: 1001
+  # Ensure non-root execution
+  runAsNonRoot: true
+  runAsUser: 1001
+  runAsGroup: 1001
+
+# Security context for the container
+# Docling-serve runs as user 1001 (non-root)
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  # Cannot use readOnlyRootFilesystem as docling needs to write to /tmp/docling
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 5001
+  # Named port for clarity in Ingress configuration
+  name: http
+  # Annotations for the service (useful for cloud load balancers)
+  annotations: {}
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Important: Allow large document uploads (default nginx limit is 1m)
+    # nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    # nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    # nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+  hosts:
+    - host: docling-serve.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: docling-serve-tls
+  #    hosts:
+  #      - docling-serve.local
+
+# Resource limits and requests
+# Based on official Kubernetes deployment examples from docling-serve
+# CPU image is ~4.4GB, GPU images are 10-11GB
+resources:
+  requests:
+    cpu: 250m
+    memory: 1Gi
+  limits:
+    cpu: 1
+    memory: 4Gi
+
+# Scratch storage configuration
+# Docling-serve uses /tmp/docling for temporary document processing
+# Models are pre-baked into the container image
+scratch:
+  # Enable persistent volume for scratch space
+  # Set to true if you want results to persist across pod restarts
+  persistent: false
+
+  # emptyDir configuration (when persistent: false)
+  emptyDir:
+    # Use memory-backed emptyDir for better performance (counts against memory limits)
+    # Set to "" for node disk storage
+    medium: ""
+    # Size limit for emptyDir
+    sizeLimit: 10Gi
+
+  # PVC configuration (when persistent: true)
+  pvc:
+    # Storage class for PVC. Empty string "" uses cluster default storage class
+    # Set to "-" to disable dynamic provisioning
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    # Annotations for the PVC
+    annotations: {}
+
+# Node selector for pod assignment
+nodeSelector: {}
+
+# Tolerations for pod assignment
+tolerations: []
+
+# Affinity for pod assignment
+affinity: {}
+
+# Liveness probe configuration
+# Checks if the service is healthy and responsive
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Readiness probe configuration
+# Checks if the service is ready to accept traffic
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# Startup probe configuration (for model loading at boot)
+# Allows up to 200 seconds for initial model loading (20 failures * 10s period)
+# Important when loadModelsAtBoot is enabled
+startupProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 20
+
+# Core environment variables for docling-serve
+# See docs/configuration.md for complete reference
+env:
+  # Uvicorn server configuration
+  uvicornHost: "0.0.0.0"
+  uvicornPort: "5001"
+  uvicornWorkers: "1"
+
+  # Docling-serve application configuration
+  # Disable Gradio UI by default (API-only focus)
+  # Set to "true" to enable the web UI at /ui
+  enableUI: "false"
+
+  # Load models at boot for faster first request
+  # Set to "false" for faster startup but slower first conversion
+  loadModelsAtBoot: "true"
+
+  # Engine configuration
+  # "local" = built-in thread-based processing (simple, recommended)
+  # "rq" = Redis Queue distributed workers (requires Redis, see docs)
+  engineKind: "local"
+
+  # Number of worker threads for local engine
+  engineLocalNumWorkers: "2"
+
+  # Scratch path for temporary file storage
+  scratchPath: "/tmp/docling"
+
+  # Clean up results after retrieval
+  # Set to "false" to keep results available for multiple retrievals
+  singleUseResults: "true"
+
+  # Performance tuning
+  # Number of threads for document processing
+  numThreads: "4"
+
+  # Device selection: "cpu" or "cuda" (for GPU)
+  # For GPU support, see examples/values-gpu.yaml
+  device: "cpu"
+
+# API authentication configuration
+# When enabled, all API requests must include X-API-Key header
+apiKey:
+  # Enable API key authentication
+  enabled: false
+
+  # API key value (leave empty to auto-generate)
+  # For production, consider using existingSecret instead
+  value: ""
+
+  # Use existing secret for API key
+  # If set, value above is ignored
+  existingSecret: ""
+
+  # Key name within the secret
+  existingSecretKey: "api-key"
+
+# Extra environment variables
+# Add any additional Docling-serve environment variables here
+# For full list of options, see:
+# https://github.com/docling-project/docling-serve
+extraEnv: []
+  # Examples:
+  # - name: DOCLING_SERVE_MAX_NUM_PAGES
+  #   value: "1000"
+  # - name: DOCLING_SERVE_MAX_FILE_SIZE
+  #   value: "104857600"  # 100MB
+  # - name: DOCLING_SERVE_CORS_ORIGINS
+  #   value: '["https://example.com"]'
+  # - name: DOCLING_PERF_PAGE_BATCH_SIZE
+  #   value: "4"

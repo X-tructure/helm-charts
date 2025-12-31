@@ -1,0 +1,27 @@
+apiVersion: v2
+name: docling-serve
+description: A Helm chart for Docling-Serve - API service wrapper for AI document conversion toolkit
+type: application
+
+# Chart version - follows SemVer 2
+version: 0.1.0
+
+# Application version - tracks docling-serve release version
+appVersion: "1.9.0"
+
+keywords:
+  - docling
+  - document-conversion
+  - ai
+  - pdf
+  - api
+  - fastapi
+
+home: https://github.com/docling-project/docling-serve
+sources:
+  - https://github.com/docling-project/docling-serve
+  - https://github.com/docling-project/docling
+
+maintainers:
+  - name: Docling Project
+    url: https://github.com/docling-project

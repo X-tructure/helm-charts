@@ -1,0 +1,25 @@
+{{- if .Values.scratch.persistent -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "docling-serve.fullname" . }}-scratch
+  labels:
+    {{- include "docling-serve.labels" . | nindent 4 }}
+  {{- with .Values.scratch.pvc.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  accessModes:
+    - {{ .Values.scratch.pvc.accessMode | quote }}
+  resources:
+    requests:
+      storage: {{ .Values.scratch.pvc.size | quote }}
+  {{- if .Values.scratch.pvc.storageClass }}
+  {{- if (eq "-" .Values.scratch.pvc.storageClass) }}
+  storageClassName: ""
+  {{- else }}
+  storageClassName: {{ .Values.scratch.pvc.storageClass | quote }}
+  {{- end }}
+  {{- end }}
+{{- end }}

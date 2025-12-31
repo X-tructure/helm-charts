@@ -1,0 +1,62 @@
+# GPU configuration example for Docling-Serve Helm Chart
+# CUDA 12.6 or 12.8 support with GPU acceleration
+
+# Use GPU-enabled image
+# Choose between cu126 or cu128 based on your CUDA version and driver
+image:
+  repository: ghcr.io/docling-project/docling-serve-cu126
+  # For CUDA 12.8, use:
+  # repository: ghcr.io/docling-project/docling-serve-cu128
+
+# GPU resource allocation
+# Requires NVIDIA GPU Operator and appropriate drivers
+resources:
+  requests:
+    cpu: 500m
+    memory: 4Gi
+    # Request 1 GPU
+    nvidia.com/gpu: 1
+  limits:
+    cpu: 2
+    memory: 16Gi
+    nvidia.com/gpu: 1
+
+# Configure environment for GPU acceleration
+env:
+  # Enable CUDA device
+  device: "cuda"
+  # Increase workers for GPU parallelism
+  engineLocalNumWorkers: "4"
+  # More threads for better GPU utilization
+  numThreads: "8"
+
+# Node selector to target GPU nodes
+nodeSelector:
+  nvidia.com/gpu.present: "true"
+
+# Tolerate GPU node taints
+tolerations:
+  - key: "nvidia.com/gpu"
+    operator: "Exists"
+    effect: "NoSchedule"
+
+# Optional: Affinity for specific GPU types
+# Uncomment and adjust for your environment
+# affinity:
+#   nodeAffinity:
+#     requiredDuringSchedulingIgnoredDuringExecution:
+#       nodeSelectorTerms:
+#       - matchExpressions:
+#         - key: nvidia.com/gpu.product
+#           operator: In
+#           values:
+#           - Tesla-V100-SXM2-16GB
+#           - Tesla-T4
+#           - NVIDIA-A100-SXM4-40GB
+
+# Additional GPU-specific environment variables (optional)
+# extraEnv:
+#   - name: NVIDIA_VISIBLE_DEVICES
+#     value: "all"
+#   - name: NVIDIA_DRIVER_CAPABILITIES
+#     value: "compute,utility"
