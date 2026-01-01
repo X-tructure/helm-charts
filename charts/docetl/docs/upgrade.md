@@ -6,7 +6,7 @@ This guide covers upgrading the DocETL Helm chart to newer versions.
 
 ### 1. Review the Changelog
 
-Check the [Releases page](https://github.com/thinking-and-coding/obsidian-helm-chart/releases) for:
+Check the [Releases page](https://github.com/X-tructure/helm-charts/releases) for:
 - New features
 - Breaking changes
 - Deprecated parameters
@@ -46,15 +46,15 @@ Use this for minor/patch version upgrades with no breaking changes:
 
 ```bash
 # Update Helm repository
-helm repo update thinking-and-coding
+helm repo update extreme_structure
 
 # Upgrade to latest version
-helm upgrade docetl thinking-and-coding/docetl \
+helm upgrade docetl extreme_structure/docetl \
   -f my-values.yaml \
   --namespace docetl
 
 # Upgrade to specific version
-helm upgrade docetl thinking-and-coding/docetl \
+helm upgrade docetl extreme_structure/docetl \
   --version 1.2.0 \
   -f my-values.yaml
 ```
@@ -65,12 +65,12 @@ Test the upgrade before applying:
 
 ```bash
 # Dry-run to see what will change
-helm upgrade docetl thinking-and-coding/docetl \
+helm upgrade docetl extreme_structure/docetl \
   -f my-values.yaml \
   --dry-run --debug
 
 # If looks good, apply
-helm upgrade docetl thinking-and-coding/docetl \
+helm upgrade docetl extreme_structure/docetl \
   -f my-values.yaml
 ```
 
@@ -79,7 +79,7 @@ helm upgrade docetl thinking-and-coding/docetl \
 Use when pods need recreation (e.g., image updates):
 
 ```bash
-helm upgrade docetl thinking-and-coding/docetl \
+helm upgrade docetl extreme_structure/docetl \
   -f my-values.yaml \
   --force
 ```
@@ -91,7 +91,7 @@ helm upgrade docetl thinking-and-coding/docetl \
 Automatically rollback if upgrade fails:
 
 ```bash
-helm upgrade docetl thinking-and-coding/docetl \
+helm upgrade docetl extreme_structure/docetl \
   -f my-values.yaml \
   --atomic \
   --timeout 5m
@@ -109,7 +109,7 @@ helm upgrade docetl thinking-and-coding/docetl \
 **Migration steps:**
 ```bash
 # No breaking changes, standard upgrade
-helm upgrade docetl thinking-and-coding/docetl -f my-values.yaml
+helm upgrade docetl extreme_structure/docetl -f my-values.yaml
 
 # Verify with tests
 helm test docetl
@@ -136,7 +136,7 @@ helm test docetl
    vim my-values.yaml  # Move secrets.openaiApiKey → backend.openaiApiKey
 
    # Upgrade
-   helm upgrade docetl thinking-and-coding/docetl \
+   helm upgrade docetl extreme_structure/docetl \
      --version 2.0.0 \
      -f my-values.yaml
    ```
@@ -148,7 +148,7 @@ helm test docetl
 If an upgrade fails with `--atomic`, Helm automatically rolls back:
 
 ```bash
-helm upgrade docetl thinking-and-coding/docetl \
+helm upgrade docetl extreme_structure/docetl \
   -f my-values.yaml \
   --atomic
 ```
@@ -195,7 +195,7 @@ kubectl exec <backend-pod> -- tar xzf /tmp/backup.tar.gz -C /
 
 # 3. Reinstall previous version
 helm uninstall docetl
-helm install docetl thinking-and-coding/docetl \
+helm install docetl extreme_structure/docetl \
   --version 1.0.0 \
   -f my-values.yaml
 ```
@@ -300,7 +300,7 @@ EOF
 kubectl wait --for=condition=complete pod/data-migration --timeout=600s
 
 # 4. Update values to use new PVC
-helm upgrade docetl thinking-and-coding/docetl \
+helm upgrade docetl extreme_structure/docetl \
   --set persistence.existingClaim=docetl-data-new \
   -f my-values.yaml
 
@@ -320,7 +320,7 @@ kubectl delete pvc docetl-data
 
 2. **Install chart in new cluster:**
    ```bash
-   helm install docetl thinking-and-coding/docetl -f my-values.yaml
+   helm install docetl extreme_structure/docetl -f my-values.yaml
    ```
 
 3. **Import data to new cluster:**
@@ -339,12 +339,12 @@ To upgrade the DocETL application (not chart version):
 
 ```bash
 # Update image tag
-helm upgrade docetl thinking-and-coding/docetl \
+helm upgrade docetl extreme_structure/docetl \
   --set image.tag=v0.3.0 \
   --reuse-values
 
 # Or update in values file
-helm upgrade docetl thinking-and-coding/docetl -f my-values.yaml
+helm upgrade docetl extreme_structure/docetl -f my-values.yaml
 ```
 
 **Note**: Check [DocETL releases](https://github.com/ucbepic/docetl/releases) for breaking changes in the application.
@@ -372,7 +372,7 @@ kubectl logs -l app.kubernetes.io/instance=docetl --all-containers
 
 ```bash
 # Validate new values
-helm template docetl thinking-and-coding/docetl -f my-values.yaml
+helm template docetl extreme_structure/docetl -f my-values.yaml
 
 # Compare with current values
 helm get values docetl
@@ -386,7 +386,7 @@ kubectl delete pod <pod-name> --grace-period=0 --force
 
 # Clean up and reinstall
 helm uninstall docetl
-helm install docetl thinking-and-coding/docetl -f my-values.yaml
+helm install docetl extreme_structure/docetl -f my-values.yaml
 ```
 
 ## Best Practices
@@ -406,7 +406,7 @@ If you encounter issues during upgrade:
 
 1. Check [Troubleshooting Guide](troubleshooting.md)
 2. Review [Configuration Reference](configuration.md)
-3. Search [GitHub Issues](https://github.com/thinking-and-coding/obsidian-helm-chart/issues)
+3. Search [GitHub Issues](https://github.com/X-tructure/helm-charts/issues)
 4. Create a new issue with:
    - Current version
    - Target version

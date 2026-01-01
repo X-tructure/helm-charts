@@ -455,4 +455,4 @@ If an API key is compromised:
 For security-related questions or to report vulnerabilities:
 
 - Security issues: Report privately via GitHub Security Advisories
-- General questions: [GitHub Discussions](https://github.com/thinking-and-coding/obsidian-helm-chart/discussions)
+- General questions: [GitHub Discussions](https://github.com/X-tructure/helm-charts/discussions)

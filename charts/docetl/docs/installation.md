@@ -25,17 +25,17 @@ Both frontend and backend use the same Docker image with different startup comma
 
 ```bash
 # Add the repository
-helm repo add thinking-and-coding https://thinking-and-coding.github.io/obsidian-helm-chart
+helm repo add extreme_structure https://x-tructure.github.io/helm-charts
 helm repo update
 
 # Install with default values
-helm install docetl thinking-and-coding/docetl
+helm install docetl extreme_structure/docetl
 
 # Install with custom values
-helm install docetl thinking-and-coding/docetl -f my-values.yaml
+helm install docetl extreme_structure/docetl -f my-values.yaml
 
 # Install in a specific namespace
-helm install docetl thinking-and-coding/docetl \
+helm install docetl extreme_structure/docetl \
   -f my-values.yaml \
   --namespace docetl \
   --create-namespace
@@ -61,7 +61,7 @@ Then install the chart:
 
 ```bash
 # Clone the Helm chart repository
-git clone https://github.com/thinking-and-coding/obsidian-helm-chart.git
+git clone https://github.com/X-tructure/helm-charts.git
 cd helm-charts
 
 # Install with default values
@@ -123,7 +123,7 @@ For detailed configuration options, see the [Configuration Reference](configurat
 ### Basic Development Setup
 
 ```bash
-helm install docetl thinking-and-coding/docetl \
+helm install docetl extreme_structure/docetl \
   --set image.repository=myregistry/docetl \
   --set image.tag=dev \
   --set backend.openaiApiKey=sk-your-dev-key \
@@ -133,7 +133,7 @@ helm install docetl thinking-and-coding/docetl \
 ### Production Setup with TLS
 
 ```bash
-helm install docetl thinking-and-coding/docetl \
+helm install docetl extreme_structure/docetl \
   -f examples/values-prod.yaml \
   --set image.repository=myregistry/docetl \
   --set image.tag=v1.0.0 \
@@ -153,7 +153,7 @@ kubectl create secret generic docetl-secret \
   --namespace docetl
 
 # Install without setting the secret in values
-helm install docetl thinking-and-coding/docetl \
+helm install docetl extreme_structure/docetl \
   -f my-values.yaml \
   --set backend.openaiApiKey=placeholder
 ```
@@ -166,10 +166,10 @@ To upgrade an existing installation:
 
 ```bash
 # Upgrade with custom values
-helm upgrade docetl thinking-and-coding/docetl -f my-values.yaml
+helm upgrade docetl extreme_structure/docetl -f my-values.yaml
 
 # Upgrade and force recreation of pods
-helm upgrade docetl thinking-and-coding/docetl -f my-values.yaml --force
+helm upgrade docetl extreme_structure/docetl -f my-values.yaml --force
 ```
 
 For version-specific upgrade instructions, see the [Upgrade Guide](upgrade.md).

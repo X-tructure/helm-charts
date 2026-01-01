@@ -6,7 +6,7 @@ This guide covers upgrading the Obsidian Helm chart to newer versions.
 
 ### 1. Review Release Notes
 
-Check the [GitHub Releases](https://github.com/thinking-and-coding/obsidian-helm-chart/releases) for:
+Check the [GitHub Releases](https://github.com/X-tructure/helm-charts/releases) for:
 - Breaking changes
 - New features
 - Required actions
@@ -42,19 +42,19 @@ helm get values my-obsidian -n <namespace> > current-values.yaml
 
 ```bash
 # Update repository
-helm repo update obsidian
+helm repo update extreme_structure
 
 # Check available versions
-helm search repo obsidian/obsidian --versions
+helm search repo extreme_structure/obsidian --versions
 
 # Upgrade to latest version
-helm upgrade my-obsidian obsidian/obsidian -n <namespace>
+helm upgrade my-obsidian extreme_structure/obsidian -n <namespace>
 
 # Upgrade to specific version
-helm upgrade my-obsidian obsidian/obsidian --version 0.2.0 -n <namespace>
+helm upgrade my-obsidian extreme_structure/obsidian --version 0.2.0 -n <namespace>
 
 # Upgrade with custom values
-helm upgrade my-obsidian obsidian/obsidian \
+helm upgrade my-obsidian extreme_structure/obsidian \
   -f current-values.yaml \
   -n <namespace>
 ```
@@ -76,7 +76,7 @@ helm upgrade my-obsidian ./charts/obsidian -n <namespace>
 
 ```bash
 helm repo update
-helm upgrade my-obsidian obsidian/obsidian -n <namespace>
+helm upgrade my-obsidian extreme_structure/obsidian -n <namespace>
 ```
 
 ### Scenario 2: Upgrade with Value Changes
@@ -122,7 +122,7 @@ helm uninstall my-obsidian -n <namespace>
 # (optional) kubectl apply -f new-pvc.yaml
 
 # 4. Reinstall with new configuration
-helm install my-obsidian obsidian/obsidian \
+helm install my-obsidian extreme_structure/obsidian \
   --set persistence.storageClass=new-storage-class \
   --set persistence.size=30Gi \
   -n <namespace>
@@ -278,7 +278,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://thinking-and-coding.github.io/obsidian-helm-chart
+    repoURL: https://x-tructure.github.io/helm-charts
     chart: obsidian
     targetRevision: 0.1.0
     helm:
@@ -336,7 +336,7 @@ spec:
 If you encounter issues during upgrade:
 
 1. Check [Troubleshooting Guide](troubleshooting.md)
-2. Review [GitHub Issues](https://github.com/thinking-and-coding/obsidian-helm-chart/issues)
+2. Review [GitHub Issues](https://github.com/X-tructure/helm-charts/issues)
 3. Open a new issue with:
    - Current version
    - Target version

@@ -451,8 +451,8 @@ DocETL auto-update differs from Obsidian:
 For issues with auto-update workflow:
 
 1. Check [Troubleshooting](#troubleshooting) section
-2. Review [workflow logs](https://github.com/thinking-and-coding/obsidian-helm-chart/actions)
-3. Open [GitHub Issue](https://github.com/thinking-and-coding/obsidian-helm-chart/issues)
+2. Review [workflow logs](https://github.com/X-tructure/helm-charts/actions)
+3. Open [GitHub Issue](https://github.com/X-tructure/helm-charts/issues)
 
 For DocETL application issues:
 - [DocETL Issues](https://github.com/ucbepic/docetl/issues)

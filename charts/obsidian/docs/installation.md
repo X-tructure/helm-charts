@@ -17,16 +17,16 @@ Before installing, ensure you have:
 
 ```bash
 # Add the Helm repository
-helm repo add obsidian https://thinking-and-coding.github.io/obsidian-helm-chart
+helm repo add extreme_structure https://x-tructure.github.io/helm-charts
 
 # Update your local Helm chart repository cache
 helm repo update
 
 # Install the chart with default values
-helm install my-obsidian obsidian/obsidian
+helm install my-obsidian extreme_structure/obsidian
 
 # Install with custom values
-helm install my-obsidian obsidian/obsidian \
+helm install my-obsidian extreme_structure/obsidian \
   --set persistence.size=20Gi \
   --set auth.enabled=true \
   --set auth.username=admin \
@@ -37,7 +37,7 @@ helm install my-obsidian obsidian/obsidian \
 
 ```bash
 # Clone the repository
-git clone https://github.com/thinking-and-coding/obsidian-helm-chart.git
+git clone https://github.com/X-tructure/helm-charts.git
 cd helm-charts
 
 # Install from local chart

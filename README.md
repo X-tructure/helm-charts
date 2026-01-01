@@ -8,16 +8,16 @@ A collection of production-ready Helm charts for deploying applications on Kuber
 
 | Chart | Description | Version | App Version |
 |-------|-------------|---------|-------------|
-| [obsidian](charts/obsidian/) | Obsidian note-taking app with web GUI | ![Version](https://img.shields.io/badge/dynamic/yaml?url=https://raw.githubusercontent.com/thinking-and-coding/obsidian-helm-chart/main/charts/obsidian/Chart.yaml&label=version&query=$.version&color=blue) | ![AppVersion](https://img.shields.io/badge/dynamic/yaml?url=https://raw.githubusercontent.com/thinking-and-coding/obsidian-helm-chart/main/charts/obsidian/Chart.yaml&label=app&query=$.appVersion&color=green) |
-| [docetl](charts/docetl/) | Document processing pipeline with LLM operations | ![Version](https://img.shields.io/badge/dynamic/yaml?url=https://raw.githubusercontent.com/thinking-and-coding/obsidian-helm-chart/main/charts/docetl/Chart.yaml&label=version&query=$.version&color=blue) | ![AppVersion](https://img.shields.io/badge/dynamic/yaml?url=https://raw.githubusercontent.com/thinking-and-coding/obsidian-helm-chart/main/charts/docetl/Chart.yaml&label=app&query=$.appVersion&color=green) |
-| [docling-serve](charts/docling-serve/) | AI-powered document conversion API service | ![Version](https://img.shields.io/badge/dynamic/yaml?url=https://raw.githubusercontent.com/thinking-and-coding/obsidian-helm-chart/main/charts/docling-serve/Chart.yaml&label=version&query=$.version&color=blue) | ![AppVersion](https://img.shields.io/badge/dynamic/yaml?url=https://raw.githubusercontent.com/thinking-and-coding/obsidian-helm-chart/main/charts/docling-serve/Chart.yaml&label=app&query=$.appVersion&color=green) |
+| [obsidian](charts/obsidian/) | Obsidian note-taking app with web GUI | ![Version](https://img.shields.io/badge/dynamic/yaml?url=https://raw.githubusercontent.com/X-tructure/helm-charts/main/charts/obsidian/Chart.yaml&label=version&query=$.version&color=blue) | ![AppVersion](https://img.shields.io/badge/dynamic/yaml?url=https://raw.githubusercontent.com/X-tructure/helm-charts/main/charts/obsidian/Chart.yaml&label=app&query=$.appVersion&color=green) |
+| [docetl](charts/docetl/) | Document processing pipeline with LLM operations | ![Version](https://img.shields.io/badge/dynamic/yaml?url=https://raw.githubusercontent.com/X-tructure/helm-charts/main/charts/docetl/Chart.yaml&label=version&query=$.version&color=blue) | ![AppVersion](https://img.shields.io/badge/dynamic/yaml?url=https://raw.githubusercontent.com/X-tructure/helm-charts/main/charts/docetl/Chart.yaml&label=app&query=$.appVersion&color=green) |
+| [docling-serve](charts/docling-serve/) | AI-powered document conversion API service | ![Version](https://img.shields.io/badge/dynamic/yaml?url=https://raw.githubusercontent.com/X-tructure/helm-charts/main/charts/docling-serve/Chart.yaml&label=version&query=$.version&color=blue) | ![AppVersion](https://img.shields.io/badge/dynamic/yaml?url=https://raw.githubusercontent.com/X-tructure/helm-charts/main/charts/docling-serve/Chart.yaml&label=app&query=$.appVersion&color=green) |
 
 ## Quick Start
 
 ### Add the Helm Repository
 
 ```bash
-helm repo add thinking-and-coding https://thinking-and-coding.github.io/obsidian-helm-chart
+helm repo add extreme_structure https://x-tructure.github.io/helm-charts
 helm repo update
 ```
 
@@ -25,10 +25,10 @@ helm repo update
 
 ```bash
 # Install Obsidian chart
-helm install my-obsidian thinking-and-coding/obsidian
+helm install my-obsidian extreme_structure/obsidian
 
 # Install with custom values
-helm install my-obsidian thinking-and-coding/obsidian -f my-values.yaml
+helm install my-obsidian extreme_structure/obsidian -f my-values.yaml
 ```
 
 ### Browse Charts
@@ -37,17 +37,17 @@ Each chart has its own documentation:
 
 - **[Obsidian](charts/obsidian/)**: Web-based Obsidian note-taking application
   ```bash
-  helm install my-obsidian thinking-and-coding/obsidian
+  helm install my-obsidian extreme_structure/obsidian
   ```
 
 - **[DocETL](charts/docetl/)**: Document processing pipeline with LLM operations
   ```bash
-  helm install my-docetl thinking-and-coding/docetl
+  helm install my-docetl extreme_structure/docetl
   ```
 
 - **[Docling-Serve](charts/docling-serve/)**: AI-powered document conversion API service
   ```bash
-  helm install my-docling thinking-and-coding/docling-serve
+  helm install my-docling extreme_structure/docling-serve
   ```
 
 ## Repository Structure
@@ -120,16 +120,16 @@ For detailed repository structure, see [Repository Structure Guide](docs/reposit
 
 ```bash
 # Add repository
-helm repo add thinking-and-coding https://thinking-and-coding.github.io/obsidian-helm-chart
+helm repo add extreme_structure https://x-tructure.github.io/helm-charts
 
 # Search for charts
-helm search repo thinking-and-coding
+helm search repo X-tructure
 
 # Install a chart
-helm install my-release thinking-and-coding/<chart-name>
+helm install my-release extreme_structure/<chart-name>
 
 # Upgrade a release
-helm upgrade my-release thinking-and-coding/<chart-name>
+helm upgrade my-release extreme_structure/<chart-name>
 
 # Uninstall a release
 helm uninstall my-release
@@ -139,7 +139,7 @@ helm uninstall my-release
 
 ```bash
 # Clone the repository
-git clone https://github.com/thinking-and-coding/obsidian-helm-chart.git
+git clone https://github.com/X-tructure/helm-charts.git
 cd helm-charts
 
 # Install a chart from local directory
@@ -165,7 +165,7 @@ Deploy Obsidian note-taking application with web-based access.
 
 **Quick Install:**
 ```bash
-helm install obsidian thinking-and-coding/obsidian \
+helm install obsidian extreme_structure/obsidian \
   --set auth.enabled=true \
   --set auth.username=admin \
   --set auth.password=secure-password
@@ -187,7 +187,7 @@ Deploy document processing pipeline with LLM operations.
 
 **Quick Install:**
 ```bash
-helm install docetl thinking-and-coding/docetl \
+helm install docetl extreme_structure/docetl \
   --set backend.openaiApiKey=your-api-key \
   --set persistence.enabled=true
 ```
@@ -208,7 +208,7 @@ Deploy AI-powered document conversion API service.
 
 **Quick Install:**
 ```bash
-helm install docling thinking-and-coding/docling-serve \
+helm install docling extreme_structure/docling-serve \
   --set apiKey.enabled=true \
   --set scratch.persistent=true
 ```
@@ -307,8 +307,8 @@ Some charts support automated version tracking via GitHub Actions workflows.
 ### Getting Help
 
 - 📖 **Documentation**: Check chart-specific docs
-- 🐛 **Issues**: [GitHub Issues](https://github.com/thinking-and-coding/obsidian-helm-chart/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/thinking-and-coding/obsidian-helm-chart/discussions)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/X-tructure/helm-charts/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/X-tructure/helm-charts/discussions)
 
 ### Reporting Issues
 
@@ -341,4 +341,4 @@ All charts are provided as-is. Individual applications may have their own licens
 
 ---
 
-**Need a custom chart?** Check our [Contributing Guide](docs/contributing.md) or open a [feature request](https://github.com/thinking-and-coding/obsidian-helm-chart/issues/new)!
+**Need a custom chart?** Check our [Contributing Guide](docs/contributing.md) or open a [feature request](https://github.com/X-tructure/helm-charts/issues/new)!

@@ -14,7 +14,7 @@ Error: repo "obsidian" not found
 **Solution:**
 ```bash
 # Add the repository
-helm repo add obsidian https://thinking-and-coding.github.io/obsidian-helm-chart
+helm repo add extreme_structure https://x-tructure.github.io/helm-charts
 helm repo update
 ```
 
@@ -422,7 +422,7 @@ If you're still experiencing issues:
    - [LinuxServer.io Obsidian docs](https://docs.linuxserver.io/images/docker-obsidian)
 
 3. **Open an issue:**
-   - GitHub: https://github.com/thinking-and-coding/obsidian-helm-chart/issues
+   - GitHub: https://github.com/X-tructure/helm-charts/issues
    - Include diagnostic information from step 1
    - Describe what you expected vs. what happened
    - Include your Helm values (redact sensitive info)

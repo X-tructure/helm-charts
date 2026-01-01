@@ -23,11 +23,11 @@ Helm chart for deploying [LinuxServer.io Obsidian](https://github.com/linuxserve
 
 ```bash
 # Add the Helm repository
-helm repo add obsidian https://thinking-and-coding.github.io/obsidian-helm-chart
+helm repo add extreme_structure https://x-tructure.github.io/helm-charts
 helm repo update
 
 # Install the chart
-helm install my-obsidian obsidian/obsidian
+helm install my-obsidian extreme_structure/obsidian
 
 # Access the application
 kubectl port-forward svc/my-obsidian-obsidian 3001:3001
@@ -38,7 +38,7 @@ kubectl port-forward svc/my-obsidian-obsidian 3001:3001
 
 ```bash
 # Clone the repository
-git clone https://github.com/thinking-and-coding/obsidian-helm-chart.git
+git clone https://github.com/X-tructure/helm-charts.git
 cd helm-charts
 
 # Install the chart
@@ -64,7 +64,7 @@ See [Configuration Reference](docs/configuration.md) for detailed configuration 
 #### Enable Authentication
 
 ```bash
-helm install my-obsidian obsidian/obsidian \
+helm install my-obsidian extreme_structure/obsidian \
   --set auth.enabled=true \
   --set auth.username=admin \
   --set auth.password=your-secure-password
@@ -73,7 +73,7 @@ helm install my-obsidian obsidian/obsidian \
 #### With Ingress and TLS
 
 ```bash
-helm install my-obsidian obsidian/obsidian \
+helm install my-obsidian extreme_structure/obsidian \
   --set ingress.enabled=true \
   --set ingress.hosts[0].host=obsidian.example.com \
   --set ingress.className=nginx \
@@ -83,7 +83,7 @@ helm install my-obsidian obsidian/obsidian \
 #### Custom Resources
 
 ```bash
-helm install my-obsidian obsidian/obsidian \
+helm install my-obsidian extreme_structure/obsidian \
   --set resources.limits.cpu=4000m \
   --set resources.limits.memory=4Gi \
   --set persistence.size=50Gi \
@@ -93,7 +93,7 @@ helm install my-obsidian obsidian/obsidian \
 #### GPU Acceleration
 
 ```bash
-helm install my-obsidian obsidian/obsidian \
+helm install my-obsidian extreme_structure/obsidian \
   --set extraEnv[0].name=DRINODE \
   --set extraEnv[0].value=/dev/dri/renderD128
 ```
@@ -169,10 +169,10 @@ For a complete list of parameters, see [values.yaml](values.yaml) or the [Config
 helm repo update
 
 # Upgrade to latest version
-helm upgrade my-obsidian obsidian/obsidian
+helm upgrade my-obsidian extreme_structure/obsidian
 
 # Upgrade with custom values
-helm upgrade my-obsidian obsidian/obsidian -f my-values.yaml
+helm upgrade my-obsidian extreme_structure/obsidian -f my-values.yaml
 ```
 
 See [Upgrade Guide](docs/upgrade.md) for version-specific upgrade instructions.
@@ -192,7 +192,7 @@ kubectl delete pvc my-obsidian-obsidian-config
 If you encounter any issues or have questions:
 
 - Check the [Troubleshooting Guide](docs/troubleshooting.md)
-- Open an issue on [GitHub](https://github.com/thinking-and-coding/obsidian-helm-chart/issues)
+- Open an issue on [GitHub](https://github.com/X-tructure/helm-charts/issues)
 - Refer to the [LinuxServer.io Obsidian documentation](https://docs.linuxserver.io/images/docker-obsidian)
 
 ## Contributing
@@ -223,6 +223,6 @@ Apache License 2.0 - see [LICENSE](../../LICENSE) for details.
 ## Chart Information
 
 - **Chart Version**: See [Chart.yaml](Chart.yaml)
-- **Source Code**: https://github.com/thinking-and-coding/obsidian-helm-chart
+- **Source Code**: https://github.com/X-tructure/helm-charts
 - **Upstream Application**: https://obsidian.md
 - **Container Image**: https://github.com/linuxserver/docker-obsidian

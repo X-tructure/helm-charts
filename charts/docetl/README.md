@@ -28,14 +28,14 @@ A production-ready Helm chart for deploying [DocETL](https://docetl.org), a powe
 
 ```bash
 # Add Helm repository
-helm repo add thinking-and-coding https://thinking-and-coding.github.io/obsidian-helm-chart
+helm repo add extreme_structure https://x-tructure.github.io/helm-charts
 helm repo update
 
 # Install with default values
-helm install docetl thinking-and-coding/docetl
+helm install docetl extreme_structure/docetl
 
 # Install with custom values
-helm install docetl thinking-and-coding/docetl -f my-values.yaml
+helm install docetl extreme_structure/docetl -f my-values.yaml
 ```
 
 **Important**: Update these required fields in your values file:
@@ -189,13 +189,13 @@ To upgrade an existing installation:
 
 ```bash
 # Standard upgrade
-helm upgrade docetl thinking-and-coding/docetl -f my-values.yaml
+helm upgrade docetl extreme_structure/docetl -f my-values.yaml
 
 # Upgrade to specific version
-helm upgrade docetl thinking-and-coding/docetl --version 1.2.0 -f my-values.yaml
+helm upgrade docetl extreme_structure/docetl --version 1.2.0 -f my-values.yaml
 
 # Upgrade with automatic rollback on failure
-helm upgrade docetl thinking-and-coding/docetl -f my-values.yaml --atomic
+helm upgrade docetl extreme_structure/docetl -f my-values.yaml --atomic
 ```
 
 For version-specific migration steps, see the [Upgrade Guide](docs/upgrade.md).
@@ -316,15 +316,15 @@ helm install test ./charts/docetl --dry-run --debug
 - **DocETL Documentation**: https://ucbepic.github.io/docetl
 - **DocETL Website**: https://docetl.org
 - **DocETL Repository**: https://github.com/ucbepic/docetl
-- **Chart Issues**: https://github.com/thinking-and-coding/obsidian-helm-chart/issues
-- **Helm Chart Repository**: https://thinking-and-coding.github.io/obsidian-helm-chart
+- **Chart Issues**: https://github.com/X-tructure/helm-charts/issues
+- **Helm Chart Repository**: https://x-tructure.github.io/helm-charts
 
 ## Contributing
 
 Contributions are welcome! Please:
 
 1. Read the [Contributing Guide](../../docs/contributing.md)
-2. Check existing [issues](https://github.com/thinking-and-coding/obsidian-helm-chart/issues)
+2. Check existing [issues](https://github.com/X-tructure/helm-charts/issues)
 3. Submit pull requests with clear descriptions
 
 ## License
@@ -335,4 +335,4 @@ DocETL application is licensed separately by its maintainers at [ucbepic/docetl]
 
 ---
 
-**Need help?** Check the [documentation](docs/) or open an [issue](https://github.com/thinking-and-coding/obsidian-helm-chart/issues)!
+**Need help?** Check the [documentation](docs/) or open an [issue](https://github.com/X-tructure/helm-charts/issues)!

@@ -457,7 +457,7 @@ If you're still experiencing issues:
 
 3. **Search existing issues:**
    - [DocETL Issues](https://github.com/ucbepic/docetl/issues)
-   - [Helm Chart Issues](https://github.com/thinking-and-coding/obsidian-helm-chart/issues)
+   - [Helm Chart Issues](https://github.com/X-tructure/helm-charts/issues)
 
 4. **Create a new issue:**
    Include:
