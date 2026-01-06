@@ -1,0 +1,53 @@
+# CI test configuration for chart-testing
+# Uses minimal resources and disables features that require external dependencies
+
+# Minimal resources for CI environment
+resources:
+  requests:
+    cpu: 100m
+    memory: 512Mi
+  limits:
+    cpu: 500m
+    memory: 2Gi
+
+# Disable model persistence (would require downloading large files)
+models:
+  enabled: false
+
+# Use ephemeral storage only
+scratch:
+  persistent: false
+  emptyDir:
+    sizeLimit: 1Gi
+
+# Fast startup for testing
+env:
+  loadModelsAtBoot: "false"  # Load on first request instead
+
+# Reduced startup probe timeouts since models aren't loading
+startupProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 10  # 10s + (10 × 5s) = 60s window
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
