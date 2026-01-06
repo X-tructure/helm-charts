@@ -79,3 +79,30 @@ Return the API key secret name
 {{- include "docling-serve.fullname" . }}-api-key
 {{- end }}
 {{- end }}
+
+{{/*
+Return the model PVC name
+*/}}
+{{- define "docling-serve.modelPvcName" -}}
+{{- if .Values.models.pvc.existingClaim }}
+{{- .Values.models.pvc.existingClaim }}
+{{- else }}
+{{- include "docling-serve.fullname" . }}-models
+{{- end }}
+{{- end }}
+
+{{/*
+Return the image for model download Job
+*/}}
+{{- define "docling-serve.modelDownloadImage" -}}
+{{- $repository := .Values.models.job.image.repository | default .Values.image.repository }}
+{{- $tag := .Values.models.job.image.tag | default (.Values.image.tag | default .Chart.AppVersion) }}
+{{- printf "%s:%s" $repository $tag }}
+{{- end }}
+
+{{/*
+Return the image pull policy for model download Job
+*/}}
+{{- define "docling-serve.modelDownloadImagePullPolicy" -}}
+{{- .Values.models.job.image.pullPolicy | default .Values.image.pullPolicy }}
+{{- end }}

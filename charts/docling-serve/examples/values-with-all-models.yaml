@@ -1,0 +1,49 @@
+# Example configuration downloading ALL available models
+# Warning: Large download size and storage requirements (~25-30Gi)
+
+# Enable model persistence with all models
+models:
+  enabled: true
+
+  # Download all available models
+  download:
+    - all
+
+  # Larger PVC for all models
+  pvc:
+    size: 30Gi
+    storageClass: "fast-ssd"  # Use fast storage class if available
+
+  # Job configuration with increased resources
+  job:
+    resources:
+      requests:
+        cpu: 1
+        memory: 2Gi
+      limits:
+        cpu: 2
+        memory: 4Gi
+    ttlSecondsAfterFinished: 3600
+
+# Ensure models loaded at boot for best performance
+env:
+  loadModelsAtBoot: "true"
+
+# Extended startup time for loading all models
+startupProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 40  # 15s + (40 × 10s) = 415s for all models
+
+# Production resources
+resources:
+  requests:
+    cpu: 1
+    memory: 4Gi
+  limits:
+    cpu: 4
+    memory: 16Gi

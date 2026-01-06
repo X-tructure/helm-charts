@@ -51,6 +51,21 @@ Thank you for installing {{ .Chart.Name }}!
    - Converted documents are temporary and will be lost on pod restart
    - For persistent results, set: --set scratch.persistent=true
 {{- end }}
+{{- if .Values.models.enabled }}
+
+   Model Persistence: ENABLED
+   - Models PVC: {{ include "docling-serve.modelPvcName" . }}
+   - Artifacts path: {{ .Values.models.artifactsPath }}
+   - Models to download: {{ if or (eq (len .Values.models.download) 0) (has "all" .Values.models.download) }}all{{ else }}{{ join ", " .Values.models.download }}{{ end }}
+
+   Check model download status:
+     kubectl get job {{ include "docling-serve.fullname" . }}-model-download -n {{ .Release.Namespace }}
+     kubectl logs job/{{ include "docling-serve.fullname" . }}-model-download -n {{ .Release.Namespace }}
+{{- else }}
+
+   Model Persistence: DISABLED (using container-baked models)
+   - For model persistence, see: examples/values-with-models.yaml
+{{- end }}
 
 5. Performance Notes:
    - Running in {{ .Values.env.device | upper }} mode

@@ -1,0 +1,26 @@
+{{- if and .Values.models.enabled (not .Values.models.pvc.existingClaim) -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "docling-serve.fullname" . }}-models
+  labels:
+    {{- include "docling-serve.labels" . | nindent 4 }}
+    app.kubernetes.io/component: models
+  {{- with .Values.models.pvc.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  accessModes:
+    - {{ .Values.models.pvc.accessMode | quote }}
+  resources:
+    requests:
+      storage: {{ .Values.models.pvc.size | quote }}
+  {{- if .Values.models.pvc.storageClass }}
+  {{- if (eq "-" .Values.models.pvc.storageClass) }}
+  storageClassName: ""
+  {{- else }}
+  storageClassName: {{ .Values.models.pvc.storageClass | quote }}
+  {{- end }}
+  {{- end }}
+{{- end }}

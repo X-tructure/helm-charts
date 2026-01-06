@@ -1,0 +1,70 @@
+# Example configuration for GPU deployment with model persistence
+# Combines GPU acceleration with model PVC storage
+
+# GPU-enabled image
+image:
+  repository: ghcr.io/docling-project/docling-serve-cu126
+
+# Enable model persistence
+models:
+  enabled: true
+
+  # Download models including vision models that benefit from GPU
+  download:
+    - layout
+    - tableformer
+    - code_formula
+    - picture_classifier
+    - smolvlm
+    - granite_vision
+
+  # Larger PVC for GPU models
+  pvc:
+    size: 25Gi
+
+  # Job can run on CPU node (download doesn't need GPU)
+  job:
+    nodeSelector: {}
+    resources:
+      requests:
+        cpu: 1
+        memory: 2Gi
+      limits:
+        cpu: 2
+        memory: 4Gi
+
+# Extended startup probe for GPU initialization + model loading
+startupProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 40  # 15s + (40 × 10s) = 415s for GPU + models
+
+# GPU resource allocation for deployment
+resources:
+  requests:
+    cpu: 1
+    memory: 4Gi
+    nvidia.com/gpu: 1
+  limits:
+    cpu: 4
+    memory: 16Gi
+    nvidia.com/gpu: 1
+
+# Node selector for GPU nodes
+nodeSelector:
+  nvidia.com/gpu.present: "true"
+
+# Tolerate GPU node taints
+tolerations:
+  - key: "nvidia.com/gpu"
+    operator: "Exists"
+    effect: "NoSchedule"
+
+# GPU configuration
+env:
+  device: "cuda"
+  loadModelsAtBoot: "true"

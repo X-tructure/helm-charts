@@ -1,0 +1,49 @@
+# Example configuration with model persistence enabled
+# Downloads selected models to a PVC instead of using container-baked models
+
+# Enable model persistence
+models:
+  enabled: true
+
+  # Download only essential models (saves space and time)
+  download:
+    - layout
+    - tableformer
+    - code_formula
+    - picture_classifier
+
+  # PVC configuration for model storage
+  pvc:
+    size: 15Gi
+    storageClass: ""  # Use cluster default storage class
+
+  # Job configuration for model download
+  job:
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 2Gi
+    # Clean up Job after 1 hour
+    ttlSecondsAfterFinished: 3600
+
+# Extended startup probe for model loading from PVC
+startupProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30  # 15s + (30 × 10s) = 315s total window
+
+# Production resource allocation
+resources:
+  requests:
+    cpu: 500m
+    memory: 2Gi
+  limits:
+    cpu: 2
+    memory: 8Gi

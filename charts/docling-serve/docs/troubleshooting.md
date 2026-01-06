@@ -7,6 +7,7 @@ Common issues and solutions for the Docling-Serve Helm chart.
 - [Pod Issues](#pod-issues)
 - [API Issues](#api-issues)
 - [Storage Issues](#storage-issues)
+- [Model Persistence Issues](#model-persistence-issues)
 - [GPU Issues](#gpu-issues)
 - [Performance Issues](#performance-issues)
 - [Authentication Issues](#authentication-issues)
@@ -293,6 +294,282 @@ kubectl get pv
    env:
      singleUseResults: "true"
    ```
+
+## Model Persistence Issues
+
+### Model Download Job Failed
+
+**Symptoms:**
+- Job shows `BackoffLimitExceeded` status
+- Job pods in `Error` or `CrashLoopBackOff` state
+
+**Diagnosis:**
+```bash
+# Check Job status
+kubectl get job -l app.kubernetes.io/component=model-download
+
+# Check Job logs
+kubectl logs job/<release-name>-docling-serve-model-download
+
+# Describe Job for events
+kubectl describe job <release-name>-docling-serve-model-download
+```
+
+**Common Causes:**
+
+1. **Network Connectivity Issues**
+   ```bash
+   # Test network from Job pod
+   kubectl run -it --rm test --image=curlimages/curl --restart=Never -- \
+     curl -I https://huggingface.co
+   ```
+
+2. **Insufficient PVC Size**
+   ```yaml
+   # Increase PVC size
+   models:
+     pvc:
+       size: 30Gi  # Increase from default 15Gi
+   ```
+
+3. **Proxy/Firewall Blocking Downloads**
+   ```yaml
+   # Add proxy environment variables
+   models:
+     job:
+       extraEnv:
+         - name: HTTP_PROXY
+           value: "http://proxy.example.com:8080"
+         - name: HTTPS_PROXY
+           value: "http://proxy.example.com:8080"
+   ```
+
+**Solutions:**
+
+1. **Increase Backoff Limit**
+   ```yaml
+   models:
+     job:
+       backoffLimit: 5  # Increase from default 3
+   ```
+
+2. **Delete and Recreate Job**
+   ```bash
+   kubectl delete job <release-name>-docling-serve-model-download
+   helm upgrade <release-name> ./charts/docling-serve --reuse-values
+   ```
+
+### Insufficient Model Storage
+
+**Symptoms:**
+- "No space left on device" in Job logs
+- Job fails during model download
+- PVC usage at 100%
+
+**Diagnosis:**
+```bash
+# Check PVC usage
+kubectl exec deployment/<release-name>-docling-serve -- df -h /modelcache
+
+# Check PVC size
+kubectl get pvc <release-name>-docling-serve-models -o jsonpath='{.spec.resources.requests.storage}'
+```
+
+**Solutions:**
+
+1. **Increase PVC Size**
+   ```yaml
+   models:
+     pvc:
+       size: 30Gi  # For all models
+   ```
+
+   Storage sizing guide:
+   - Basic models (layout, tableformer, code_formula, picture_classifier): 10-15Gi
+   - With vision models (+ smolvlm, granite_vision): 20-25Gi
+   - All models (+ easyocr): 25-30Gi
+
+2. **Select Fewer Models**
+   ```yaml
+   models:
+     download:
+       - layout
+       - tableformer
+       # Remove unnecessary models
+   ```
+
+3. **Use Existing PVC with More Space**
+   ```yaml
+   models:
+     pvc:
+       existingClaim: "my-large-pvc"
+   ```
+
+### Models Not Loading in Deployment
+
+**Symptoms:**
+- Deployment runs but models not found
+- API returns errors about missing models
+- Application uses container-baked models instead of PVC
+
+**Diagnosis:**
+```bash
+# Check if DOCLING_SERVE_ARTIFACTS_PATH is set
+kubectl exec deployment/<release-name>-docling-serve -- env | grep ARTIFACTS_PATH
+
+# List models in PVC
+kubectl exec deployment/<release-name>-docling-serve -- ls -la /modelcache
+
+# Check volume mount
+kubectl describe pod -l app.kubernetes.io/name=docling-serve | grep -A 10 "Mounts:"
+
+# Verify PVC is bound
+kubectl get pvc <release-name>-docling-serve-models
+```
+
+**Solutions:**
+
+1. **Verify Model Persistence is Enabled**
+   ```yaml
+   models:
+     enabled: true  # Must be true
+   ```
+
+2. **Check Job Completed Successfully**
+   ```bash
+   kubectl get job <release-name>-docling-serve-model-download
+   # Should show COMPLETIONS: 1/1
+   ```
+
+3. **Restart Deployment**
+   ```bash
+   kubectl rollout restart deployment/<release-name>-docling-serve
+   ```
+
+### Job Stuck in Pending
+
+**Symptoms:**
+- Job pod never starts
+- Pod stuck in `Pending` state
+
+**Diagnosis:**
+```bash
+# Check Job pod events
+kubectl describe pod -l app.kubernetes.io/component=model-download
+
+# Check PVC status
+kubectl get pvc <release-name>-docling-serve-models
+```
+
+**Solutions:**
+
+1. **PVC Not Bound**
+   - See [PVC Not Binding](#pvc-not-binding) section
+
+2. **Resource Constraints**
+   ```yaml
+   models:
+     job:
+       resources:
+         requests:
+           cpu: 250m  # Reduce from 500m
+           memory: 512Mi  # Reduce from 1Gi
+   ```
+
+3. **Node Selector Mismatch**
+   ```yaml
+   models:
+     job:
+       nodeSelector: {}  # Remove restrictions
+   ```
+
+### Multiple Pods with ReadWriteOnce PVC
+
+**Symptoms:**
+- Cannot scale deployment beyond 1 replica
+- Pods fail to mount models PVC
+
+**Cause:** Models PVC uses `ReadWriteOnce` access mode
+
+**Solutions:**
+
+1. **Use ReadOnly Mount** (Default behavior)
+   - Models are mounted read-only in deployment
+   - RWO PVC can be shared when mounted read-only
+   - This is already configured correctly
+
+2. **Scale After Model Download**
+   ```bash
+   # Wait for Job to complete
+   kubectl wait --for=condition=complete job/<release-name>-docling-serve-model-download --timeout=600s
+
+   # Then scale
+   kubectl scale deployment/<release-name>-docling-serve --replicas=3
+   ```
+
+3. **Use ReadWriteMany (Advanced)**
+   ```yaml
+   models:
+     pvc:
+       accessMode: ReadWriteMany
+       storageClass: "nfs-client"  # Or other RWX-capable storage
+   ```
+
+### Updating Models
+
+**How to update models to newer versions:**
+
+1. **Delete Existing Job**
+   ```bash
+   kubectl delete job <release-name>-docling-serve-model-download
+   ```
+
+2. **Delete PVC (Models will be lost)**
+   ```bash
+   kubectl delete pvc <release-name>-docling-serve-models
+   ```
+
+3. **Upgrade Chart**
+   ```bash
+   helm upgrade <release-name> ./charts/docling-serve --reuse-values
+   ```
+
+4. **Wait for New Download**
+   ```bash
+   kubectl wait --for=condition=complete job/<release-name>-docling-serve-model-download
+   ```
+
+**Alternative: Update in-place (Advanced)**
+```bash
+# Scale down deployment
+kubectl scale deployment/<release-name>-docling-serve --replicas=0
+
+# Run update Job manually
+kubectl apply -f - <<EOF
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: model-update
+spec:
+  template:
+    spec:
+      containers:
+      - name: updater
+        image: ghcr.io/docling-project/docling-serve-cpu:latest
+        command: ["/bin/sh", "-c", "docling-tools models download --output-dir=/modelcache --all --force"]
+        volumeMounts:
+        - name: models
+          mountPath: /modelcache
+      volumes:
+      - name: models
+        persistentVolumeClaim:
+          claimName: <release-name>-docling-serve-models
+      restartPolicy: Never
+EOF
+
+# Scale deployment back up
+kubectl scale deployment/<release-name>-docling-serve --replicas=1
+```
 
 ## GPU Issues
 

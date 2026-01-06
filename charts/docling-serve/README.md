@@ -6,6 +6,7 @@ Helm chart for deploying [Docling-Serve](https://github.com/docling-project/docl
 
 - Easy deployment with CPU-optimized defaults
 - Optional GPU acceleration (CUDA 12.6/12.8)
+- Model persistence with selective downloads (PVC + Job)
 - API-only focus (Gradio UI optional)
 - Flexible storage (ephemeral or persistent)
 - Optional API key authentication
@@ -108,6 +109,18 @@ helm install my-docling-serve ./charts/docling-serve \
   --set scratch.pvc.size=50Gi
 ```
 
+#### Model Persistence (Recommended for Production)
+
+```bash
+# Download models to PVC instead of using container-baked models
+helm install my-docling-serve ./charts/docling-serve \
+  -f charts/docling-serve/examples/values-with-models.yaml
+
+# With GPU and vision models
+helm install my-docling-serve ./charts/docling-serve \
+  -f charts/docling-serve/examples/values-gpu-with-models.yaml
+```
+
 ## Architecture Decisions
 
 This chart is designed with the following priorities:
@@ -158,6 +171,9 @@ All example configurations are in `examples/`:
 - **values-production.yaml** - Production-ready (authentication, persistent storage)
 - **values-with-ingress.yaml** - External access (TLS, Ingress)
 - **values-gpu.yaml** - GPU acceleration (CUDA 12.6/12.8)
+- **values-with-models.yaml** - Model persistence with selective downloads (PVC + Job)
+- **values-with-all-models.yaml** - Download all available models
+- **values-gpu-with-models.yaml** - GPU deployment with model persistence
 
 ## Values
 

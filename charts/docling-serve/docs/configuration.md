@@ -135,6 +135,57 @@ resources:
 - **Memory-backed:** `emptyDir.medium: "Memory"` - faster, counts against memory
 - **Persistent:** `persistent: true` - creates PVC
 
+## Model Persistence Configuration
+
+Model persistence allows downloading and storing AI models on a PersistentVolumeClaim instead of using pre-baked container images.
+
+### Benefits
+
+- **Smaller container images**: Reduces image pull time and storage requirements
+- **Selective model downloads**: Only download the models you need
+- **Model sharing**: Multiple pods share the same model storage
+- **Easier updates**: Update models without rebuilding container images
+
+### Configuration Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `models.enabled` | bool | `false` | Enable model persistence |
+| `models.download` | list | `[layout, ...]` | List of models to download |
+| `models.artifactsPath` | string | `/modelcache` | Path where models are stored |
+| `models.pvc.storageClass` | string | `""` | Storage class for PVC |
+| `models.pvc.accessMode` | string | `ReadWriteOnce` | PVC access mode |
+| `models.pvc.size` | string | `15Gi` | PVC storage size |
+| `models.pvc.existingClaim` | string | `""` | Use existing PVC |
+| `models.job.backoffLimit` | int | `3` | Job retry attempts |
+| `models.job.ttlSecondsAfterFinished` | int | `3600` | Job cleanup time (seconds) |
+| `models.job.resources` | object | See values.yaml | Job resource requests/limits |
+
+### Available Models
+
+- **layout**: Document layout analysis
+- **tableformer**: Table structure recognition
+- **code_formula**: Code and formula detection
+- **picture_classifier**: Image classification
+- **smolvlm**: Small vision-language model
+- **granite_vision**: IBM Granite vision model
+- **easyocr**: OCR engine
+
+### Storage Sizing Guide
+
+| Model Set | Recommended Size | Description |
+|-----------|------------------|-------------|
+| Basic models | 10-15Gi | layout, tableformer, code_formula, picture_classifier |
+| With vision models | 20-25Gi | Basic + smolvlm, granite_vision |
+| All models | 25-30Gi | Complete model set including easyocr |
+
+### Example Configurations
+
+See example files for complete configurations:
+- `examples/values-with-models.yaml` - Basic model persistence
+- `examples/values-with-all-models.yaml` - All models
+- `examples/values-gpu-with-models.yaml` - GPU with models
+
 ## Health Probes
 
 | Parameter | Type | Default | Description |
