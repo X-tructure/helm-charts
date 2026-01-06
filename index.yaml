@@ -26,6 +26,31 @@ entries:
   docling-serve:
   - apiVersion: v2
     appVersion: v1.9.0
+    created: "2026-01-06T16:05:22.397781147Z"
+    description: A Helm chart for Docling-Serve - API service wrapper for AI document
+      conversion toolkit
+    digest: b4da6d67d882d0c5a2f284b97c0bf3e2c17c9bcc7f09166b1210170b6447d19b
+    home: https://github.com/docling-project/docling-serve
+    keywords:
+    - docling
+    - document-conversion
+    - ai
+    - pdf
+    - api
+    - fastapi
+    maintainers:
+    - name: Docling Project
+      url: https://github.com/docling-project
+    name: docling-serve
+    sources:
+    - https://github.com/docling-project/docling-serve
+    - https://github.com/docling-project/docling
+    type: application
+    urls:
+    - https://github.com/X-tructure/helm-charts/releases/download/docling-serve-0.2.0/docling-serve-0.2.0.tgz
+    version: 0.2.0
+  - apiVersion: v2
+    appVersion: v1.9.0
     created: "2026-01-06T13:42:37.259499151Z"
     description: A Helm chart for Docling-Serve - API service wrapper for AI document
       conversion toolkit
@@ -126,4 +151,4 @@ entries:
     urls:
     - https://github.com/X-tructure/helm-charts/releases/download/obsidian-0.1.5/obsidian-0.1.5.tgz
     version: 0.1.5
-generated: "2026-01-06T13:42:37.259515813Z"
+generated: "2026-01-06T16:05:22.397801866Z"
