@@ -331,7 +331,7 @@ jobs:
         id: create_pr
         uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
           commit-message: |
             chore: update Obsidian to ${{ needs.check-updates.outputs.latest_version }}
 
@@ -366,6 +366,30 @@ jobs:
             dependencies
             auto-update
           reviewers: ${{ vars.PR_REVIEWERS }}
+
+      - name: Check PR creation result
+        if: vars.AUTO_MERGE != 'true' && failure()
+        run: |
+          echo "::error::Failed to create Pull Request"
+          echo "::error::This might be due to GitHub Actions permissions."
+          echo ""
+          echo "To fix this issue, you have two options:"
+          echo ""
+          echo "Option 1 (Recommended): Enable GitHub Actions to create PRs"
+          echo "  1. Go to your repository Settings"
+          echo "  2. Navigate to Actions > General"
+          echo "  3. Scroll down to 'Workflow permissions'"
+          echo "  4. Check 'Allow GitHub Actions to create and approve pull requests'"
+          echo "  5. Click 'Save'"
+          echo ""
+          echo "Option 2: Use a Personal Access Token (PAT)"
+          echo "  1. Create a PAT with 'repo' and 'workflow' scopes"
+          echo "  2. Go to your repository Settings > Secrets and variables > Actions"
+          echo "  3. Create a new secret named 'PAT_TOKEN'"
+          echo "  4. Paste your PAT as the value"
+          echo ""
+          echo "For more information, see: docs/auto-update.md"
+          exit 1
 
       - name: Validate AUTO_MERGE configuration
         if: vars.AUTO_MERGE == 'true'
