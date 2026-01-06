@@ -15,6 +15,36 @@ resources:
 env:
   loadModelsAtBoot: "false"
 
+# Optimized probes for fast startup without model loading
+# Since models aren't loaded at boot, startup is much faster (~30s)
+# These settings prevent false failures with constrained resources
+startupProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 15    # Allow time for app init with limited CPU
+  periodSeconds: 5           # Check frequently for faster feedback
+  timeoutSeconds: 3          # Fast response expected without models
+  failureThreshold: 10       # 15s + (10 × 5s) = 65s total window
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 2
+  failureThreshold: 3
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 20
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
 # Use memory-backed scratch for faster I/O
 scratch:
   emptyDir:

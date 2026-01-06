@@ -139,17 +139,25 @@ resources:
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `startupProbe.httpGet.path` | string | `/` | Startup probe path |
+| `startupProbe.httpGet.path` | string | `/health` | Startup probe path |
 | `startupProbe.httpGet.port` | string | `http` | Startup probe port |
 | `startupProbe.initialDelaySeconds` | int | `5` | Initial delay |
 | `startupProbe.periodSeconds` | int | `10` | Period between checks |
 | `startupProbe.failureThreshold` | int | `20` | Failure threshold (200s total) |
-| `readinessProbe.httpGet.path` | string | `/` | Readiness probe path |
+| `readinessProbe.httpGet.path` | string | `/health` | Readiness probe path |
 | `readinessProbe.initialDelaySeconds` | int | `10` | Initial delay |
 | `readinessProbe.periodSeconds` | int | `5` | Period between checks |
-| `livenessProbe.httpGet.path` | string | `/` | Liveness probe path |
+| `livenessProbe.httpGet.path` | string | `/health` | Liveness probe path |
 | `livenessProbe.initialDelaySeconds` | int | `30` | Initial delay |
 | `livenessProbe.periodSeconds` | int | `10` | Period between checks |
+
+**Note:** The default probe configurations are optimized for model-loading scenarios
+(`loadModelsAtBoot: "true"`). If you disable model loading or use constrained resources,
+consider using scenario-specific probe configurations from the example files:
+- `values-basic.yaml`: Optimized for fast startup without model loading (65s window)
+- `values-gpu.yaml`: Extended window for GPU initialization overhead (315s window)
+
+See [troubleshooting.md](troubleshooting.md#understanding-probe-configuration-for-different-scenarios) for guidance on choosing the right probe configuration.
 
 ## Environment Variables
 
@@ -241,7 +249,7 @@ tolerations:
 # Full configuration example
 image:
   repository: ghcr.io/docling-project/docling-serve-cpu
-  tag: "1.9.0"
+  tag: "v1.9.0"
 
 replicaCount: 2
 

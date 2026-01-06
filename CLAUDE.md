@@ -275,7 +275,7 @@ The Docling-Serve chart is designed for simplicity and production readiness:
    - Startup probe: 200s window for model loading
    - Readiness probe: Fast check (5s period)
    - Liveness probe: Conservative (10s period)
-   - All probes use `GET /` endpoint
+   - All probes use `GET /health` endpoint
 
 7. **GPU Support** (Optional):
    - CUDA 12.6 (`docling-serve-cu126`) or 12.8 (`docling-serve-cu128`)

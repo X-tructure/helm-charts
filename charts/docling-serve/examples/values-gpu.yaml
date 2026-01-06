@@ -30,6 +30,17 @@ env:
   # More threads for better GPU utilization
   numThreads: "8"
 
+# Extended startup probe for GPU initialization
+# GPU driver setup and CUDA initialization can add 30-60s to startup
+startupProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 15    # Account for GPU driver initialization
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30       # 15s + (30 × 10s) = 315s for GPU model loading
+
 # Node selector to target GPU nodes
 nodeSelector:
   nvidia.com/gpu.present: "true"

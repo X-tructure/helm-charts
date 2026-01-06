@@ -4,10 +4,10 @@ description: A Helm chart for Docling-Serve - API service wrapper for AI documen
 type: application
 
 # Chart version - follows SemVer 2
-version: 0.1.0
+version: 0.1.1
 
 # Application version - tracks docling-serve release version
-appVersion: "1.9.0"
+appVersion: "v1.9.0"
 
 keywords:
   - docling

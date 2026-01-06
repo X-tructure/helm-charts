@@ -84,6 +84,42 @@ kubectl logs -l app.kubernetes.io/name=docling-serve
      loadModelsAtBoot: "false"
    ```
 
+#### Understanding Probe Configuration for Different Scenarios
+
+The appropriate startup probe configuration depends on your deployment scenario:
+
+| Scenario | Model Loading | Typical Startup Time | Recommended Window |
+|----------|---------------|---------------------|-------------------|
+| Basic (CPU, minimal resources) | Disabled | 20-40s | 65s (see values-basic.yaml) |
+| Production (CPU, good resources) | Enabled | 60-120s | 205s (default) |
+| GPU (CUDA, high resources) | Enabled | 90-180s | 315s (see values-gpu.yaml) |
+
+**Key Relationship:**
+- When `loadModelsAtBoot: "false"` → Models load on first request, startup is fast
+- When `loadModelsAtBoot: "true"` → Models load during startup, need longer window
+
+**Calculating Startup Window:**
+```
+Total window = initialDelaySeconds + (failureThreshold × periodSeconds)
+```
+
+**Diagnostic Steps:**
+
+1. **Check actual startup time:**
+   ```bash
+   kubectl logs <pod-name> | grep "Application startup complete"
+   ```
+
+2. **Monitor probe failures:**
+   ```bash
+   kubectl describe pod <pod-name> | grep -A 5 "Liveness\|Readiness\|Startup"
+   ```
+
+3. **Adjust failureThreshold if needed:**
+   - Calculate observed startup time from logs
+   - Add 30-50% buffer for safety
+   - Update failureThreshold: `(desired_window - initialDelay) / periodSeconds`
+
 ### Memory Issues
 
 **Symptoms:**

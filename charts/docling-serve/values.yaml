@@ -139,7 +139,7 @@ affinity: {}
 # Checks if the service is healthy and responsive
 livenessProbe:
   httpGet:
-    path: /
+    path: /health
     port: http
   initialDelaySeconds: 30
   periodSeconds: 10
@@ -150,7 +150,7 @@ livenessProbe:
 # Checks if the service is ready to accept traffic
 readinessProbe:
   httpGet:
-    path: /
+    path: /health
     port: http
   initialDelaySeconds: 10
   periodSeconds: 5
@@ -162,7 +162,7 @@ readinessProbe:
 # Important when loadModelsAtBoot is enabled
 startupProbe:
   httpGet:
-    path: /
+    path: /health
     port: http
   initialDelaySeconds: 5
   periodSeconds: 10
