@@ -1,5 +1,5 @@
-# Example configuration with model persistence enabled
-# Downloads selected models to a PVC instead of using container-baked models
+# Example configuration with model persistence using init container
+# Downloads selected models to a PVC before app starts
 
 # Enable model persistence
 models:
@@ -17,19 +17,18 @@ models:
     size: 15Gi
     storageClass: ""  # Use cluster default storage class
 
-  # Job configuration for model download
-  job:
+  # Init container resources
+  initContainer:
     resources:
       requests:
         cpu: 500m
         memory: 1Gi
       limits:
-        cpu: 1
-        memory: 2Gi
-    # Clean up Job after 1 hour
-    ttlSecondsAfterFinished: 3600
+        cpu: 2
+        memory: 4Gi
 
 # Extended startup probe for model loading from PVC
+# Note: Init container downloads first, then app loads models into memory
 startupProbe:
   httpGet:
     path: /health
@@ -39,11 +38,11 @@ startupProbe:
   timeoutSeconds: 5
   failureThreshold: 30  # 15s + (30 × 10s) = 315s total window
 
-# Production resource allocation
+# Production resource allocation for main container
 resources:
   requests:
     cpu: 500m
     memory: 2Gi
   limits:
     cpu: 2
-    memory: 8Gi
+    memory: 4Gi

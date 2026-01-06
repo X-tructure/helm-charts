@@ -92,17 +92,17 @@ Return the model PVC name
 {{- end }}
 
 {{/*
-Return the image for model download Job
+Return the image for model download init container
 */}}
 {{- define "docling-serve.modelDownloadImage" -}}
-{{- $repository := .Values.models.job.image.repository | default .Values.image.repository }}
-{{- $tag := .Values.models.job.image.tag | default (.Values.image.tag | default .Chart.AppVersion) }}
+{{- $repository := .Values.models.initContainer.image.repository | default .Values.image.repository }}
+{{- $tag := .Values.models.initContainer.image.tag | default (.Values.image.tag | default .Chart.AppVersion) }}
 {{- printf "%s:%s" $repository $tag }}
 {{- end }}
 
 {{/*
-Return the image pull policy for model download Job
+Return the image pull policy for model download init container
 */}}
 {{- define "docling-serve.modelDownloadImagePullPolicy" -}}
-{{- .Values.models.job.image.pullPolicy | default .Values.image.pullPolicy }}
+{{- .Values.models.initContainer.image.pullPolicy | default .Values.image.pullPolicy }}
 {{- end }}

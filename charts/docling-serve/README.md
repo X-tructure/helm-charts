@@ -6,7 +6,7 @@ Helm chart for deploying [Docling-Serve](https://github.com/docling-project/docl
 
 - Easy deployment with CPU-optimized defaults
 - Optional GPU acceleration (CUDA 12.6/12.8)
-- Model persistence with selective downloads (PVC + Job)
+- Model persistence with selective downloads (init container + PVC)
 - API-only focus (Gradio UI optional)
 - Flexible storage (ephemeral or persistent)
 - Optional API key authentication
@@ -112,14 +112,23 @@ helm install my-docling-serve ./charts/docling-serve \
 #### Model Persistence (Recommended for Production)
 
 ```bash
-# Download models to PVC instead of using container-baked models
+# Download models to PVC using init container
 helm install my-docling-serve ./charts/docling-serve \
   -f charts/docling-serve/examples/values-with-models.yaml
 
 # With GPU and vision models
 helm install my-docling-serve ./charts/docling-serve \
   -f charts/docling-serve/examples/values-gpu-with-models.yaml
+
+# Monitor init container (model download) progress
+kubectl logs -f <pod-name> -c model-downloader
 ```
+
+**How it works:**
+1. Init container downloads models to PVC (first startup only)
+2. Models are checked for existence (idempotent)
+3. Main container starts after models are ready
+4. Subsequent pod restarts skip download (~1min startup)
 
 ## Architecture Decisions
 

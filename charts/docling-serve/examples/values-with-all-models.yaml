@@ -14,8 +14,8 @@ models:
     size: 30Gi
     storageClass: "fast-ssd"  # Use fast storage class if available
 
-  # Job configuration with increased resources
-  job:
+  # Init container with increased resources
+  initContainer:
     resources:
       requests:
         cpu: 1
@@ -23,7 +23,6 @@ models:
       limits:
         cpu: 2
         memory: 4Gi
-    ttlSecondsAfterFinished: 3600
 
 # Ensure models loaded at boot for best performance
 env:
@@ -39,11 +38,11 @@ startupProbe:
   timeoutSeconds: 5
   failureThreshold: 40  # 15s + (40 × 10s) = 415s for all models
 
-# Production resources
+# Production resources for main container
 resources:
   requests:
     cpu: 1
     memory: 4Gi
   limits:
     cpu: 4
-    memory: 16Gi
+    memory: 8Gi

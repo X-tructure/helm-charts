@@ -46,9 +46,142 @@ helm upgrade my-docling-serve extreme_structure/docling-serve --dry-run --debug
 
 ## Breaking Changes
 
+### v0.1.2 → v0.2.0 (Model Persistence Pattern Change)
+
+**Summary:** Version 0.2.0 replaces the **Kubernetes Job pattern** for model downloads with an **init container pattern**. This is a **breaking change** for users who have `models.enabled=true`.
+
+#### What Changed
+
+| Aspect | v0.1.2 (Job Pattern) | v0.2.0 (Init Container) |
+|--------|---------------------|-------------------------|
+| **Download mechanism** | Separate Kubernetes Job | Init container in pod |
+| **Configuration** | `models.job.*` parameters | `models.initContainer.*` parameters |
+| **Timing** | Job runs independently | Download before app starts (guaranteed) |
+| **Resource management** | Job + Deployment | Deployment only |
+| **Idempotency** | None (downloads every time) | Built-in (skips if models exist) |
+
+#### Migration Path
+
+**Option A: Fresh Install (Recommended for testing)**
+
+If you can tolerate downtime:
+
+1. **Uninstall old chart:**
+   ```bash
+   helm uninstall my-docling
+   ```
+
+2. **Keep PVC if models already downloaded** (optional):
+   ```bash
+   # List PVCs
+   kubectl get pvc
+
+   # Note the PVC name (e.g., my-docling-models)
+   ```
+
+3. **Install v0.2.0 with existingClaim:**
+   ```bash
+   helm install my-docling charts/docling-serve/ \
+     --set models.enabled=true \
+     --set models.pvc.existingClaim=<old-pvc-name>
+   ```
+
+**Option B: In-Place Upgrade (Recommended for production)**
+
+If you need minimal downtime:
+
+1. **Update values file** - remove all `models.job.*` parameters:
+
+   ```yaml
+   # OLD (v0.1.2):
+   models:
+     enabled: true
+     job:
+       resources: {...}
+       backoffLimit: 3
+       ttlSecondsAfterFinished: 3600
+       nodeSelector: {}
+
+   # NEW (v0.2.0):
+   models:
+     enabled: true
+     initContainer:
+       resources: {...}
+     # Removed: job.backoffLimit, job.ttlSecondsAfterFinished, job.nodeSelector
+   ```
+
+2. **Run Helm upgrade:**
+   ```bash
+   helm upgrade my-docling charts/docling-serve/ -f values.yaml
+   ```
+
+3. **Delete old Job** (if still running):
+   ```bash
+   kubectl delete job <release-name>-model-download
+   ```
+
+4. **Wait for pods to restart:**
+   ```bash
+   kubectl rollout status deployment <release-name>
+   ```
+
+#### Configuration Changes Required
+
+| Old Parameter (v0.1.2) | New Parameter (v0.2.0) | Action |
+|------------------------|------------------------|--------|
+| `models.job.resources` | `models.initContainer.resources` | Rename |
+| `models.job.image.*` | `models.initContainer.image.*` | Rename |
+| `models.job.backoffLimit` | N/A (removed) | Delete |
+| `models.job.ttlSecondsAfterFinished` | N/A (removed) | Delete |
+| `models.job.restartPolicy` | N/A (removed) | Delete |
+| `models.job.nodeSelector` | N/A (removed) | Delete |
+| `models.job.tolerations` | N/A (removed) | Delete |
+| `models.job.affinity` | N/A (removed) | Delete |
+| `models.job.annotations` | N/A (removed) | Delete |
+| N/A | `models.forceRedownload` | Add (optional) |
+
+#### New Features in v0.2.0
+
+1. **Idempotent downloads**: Models only downloaded once, skipped on pod restarts
+2. **Force re-download option**: `models.forceRedownload=true` for updates
+3. **Simpler architecture**: No separate Job resource to manage
+4. **Guaranteed ordering**: Init container ensures models ready before app starts
+5. **Faster restarts**: Subsequent pod starts skip download (~1min total)
+
+#### Troubleshooting Migration
+
+**Issue:** Pods stuck in `Init:0/1` state
+
+**Solution:** Check init container logs
+```bash
+kubectl logs <pod-name> -c model-downloader
+```
+
+**Issue:** `Error: unknown field "models.job"`
+
+**Solution:** Remove all `models.job.*` parameters from values
+
+**Issue:** Models re-downloading every pod restart
+
+**Solution:** Check PVC is persistent and marker file created
+```bash
+kubectl exec <pod-name> -- cat /modelcache/.models-downloaded
+```
+
+#### Rollback Procedure
+
+If you need to rollback to v0.1.2:
+
+```bash
+# Rollback Helm release
+helm rollback my-docling
+
+# Note: You may need to manually restore Job if it was deleted
+```
+
 ### v0.1.0 → Future Versions
 
-Currently at initial release (v0.1.0). Breaking changes will be documented here for future versions.
+Breaking changes will be documented here for future versions.
 
 ## Upgrade Scenarios
 

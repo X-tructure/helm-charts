@@ -127,10 +127,11 @@ scratch:
     annotations: {}
 
 # Model persistence configuration
-# Download and persist ML models to PVC instead of using container-baked models
+# Download and persist ML models to PVC using init container
 models:
   # Enable model persistence (default: false for backward compatibility)
   # When disabled, uses pre-baked models from container image
+  # When enabled, init container downloads models before app starts
   enabled: false
 
   # List of models to download
@@ -147,54 +148,53 @@ models:
   # This sets the DOCLING_SERVE_ARTIFACTS_PATH environment variable
   artifactsPath: /modelcache
 
+  # Force re-download of models on pod startup
+  # IMPORTANT: Models are checked for existence (idempotency). Set to true
+  # only when you need to update models or recover from corrupted downloads.
+  # Remember to set back to false after successful re-download.
+  forceRedownload: false
+
   # PVC configuration for model storage
   pvc:
     # Storage class for PVC. Empty string "" uses cluster default storage class
     # Set to "-" to disable dynamic provisioning
     storageClass: ""
-    # Access mode - ReadWriteOnce is sufficient as models are read-only after download
-    # Use ReadWriteMany if running multiple replicas during initial download
+
+    # Access mode - ReadWriteOnce is sufficient for single replica
+    # Use ReadWriteMany if running multiple replicas simultaneously
     accessMode: ReadWriteOnce
-    # Storage size - recommended minimum 10Gi for basic models, 20-30Gi for all models
+
+    # Storage size recommendations:
+    #   - Basic models (4): 15Gi minimum
+    #   - Vision models (6): 25Gi recommended
+    #   - All models (7): 30Gi recommended
     size: 15Gi
+
     # Annotations for the PVC
     annotations: {}
+
     # Use existing PVC instead of creating new one
     # If set, the above PVC configuration is ignored
     existingClaim: ""
 
-  # Job configuration for model download
-  job:
-    # Job restart policy (Never recommended)
-    restartPolicy: Never
-    # Number of retry attempts if Job fails
-    backoffLimit: 3
-    # Time to keep completed Job (for debugging) - 0 to keep indefinitely
-    ttlSecondsAfterFinished: 3600
-
-    # Resource requests/limits for download Job
+  # Init container configuration for model download
+  initContainer:
+    # Resource requests/limits for init container
+    # Init container only runs during pod creation, so can use higher limits
     resources:
       requests:
         cpu: 500m
         memory: 1Gi
       limits:
-        cpu: 1
-        memory: 2Gi
-
-    # Annotations for the Job
-    annotations: {}
-    # Node selector for Job pod
-    nodeSelector: {}
-    # Tolerations for Job pod
-    tolerations: []
-    # Affinity for Job pod
-    affinity: {}
+        cpu: 2
+        memory: 4Gi
 
     # Image to use for model download (defaults to main image)
     image:
       repository: ""  # Empty = use main image.repository
       tag: ""         # Empty = use main image.tag
       pullPolicy: ""  # Empty = use main image.pullPolicy
+
 
 # Node selector for pod assignment
 nodeSelector: {}

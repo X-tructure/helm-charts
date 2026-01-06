@@ -9,7 +9,7 @@ image:
 models:
   enabled: true
 
-  # Download models including vision models that benefit from GPU
+  # Download essential models + vision models for GPU
   download:
     - layout
     - tableformer
@@ -22,9 +22,8 @@ models:
   pvc:
     size: 25Gi
 
-  # Job can run on CPU node (download doesn't need GPU)
-  job:
-    nodeSelector: {}
+  # Init container can run on CPU node (download doesn't need GPU)
+  initContainer:
     resources:
       requests:
         cpu: 1
@@ -43,7 +42,7 @@ startupProbe:
   timeoutSeconds: 5
   failureThreshold: 40  # 15s + (40 × 10s) = 415s for GPU + models
 
-# GPU resource allocation for deployment
+# GPU resource allocation for main container
 resources:
   requests:
     cpu: 1
@@ -58,13 +57,7 @@ resources:
 nodeSelector:
   nvidia.com/gpu.present: "true"
 
-# Tolerate GPU node taints
-tolerations:
-  - key: "nvidia.com/gpu"
-    operator: "Exists"
-    effect: "NoSchedule"
-
-# GPU configuration
+# GPU-specific environment
 env:
   device: "cuda"
   loadModelsAtBoot: "true"

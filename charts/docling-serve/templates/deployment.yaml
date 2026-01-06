@@ -33,6 +33,86 @@ spec:
       serviceAccountName: {{ include "docling-serve.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.models.enabled }}
+      initContainers:
+      - name: model-downloader
+        image: {{ include "docling-serve.modelDownloadImage" . }}
+        imagePullPolicy: {{ include "docling-serve.modelDownloadImagePullPolicy" . }}
+        command:
+          - /bin/sh
+          - -c
+          - |
+            set -e
+
+            echo "=================================================="
+            echo "Docling-Serve Model Download Init Container"
+            echo "=================================================="
+
+            MODELS_DIR="{{ .Values.models.artifactsPath }}"
+            MARKER_FILE="${MODELS_DIR}/.models-downloaded"
+
+            # Ensure models directory exists
+            mkdir -p "$MODELS_DIR"
+
+            # Function to check disk space
+            check_disk_space() {
+                AVAILABLE=$(df -h "$MODELS_DIR" | awk 'NR==2 {print $4}')
+                echo "Available disk space: $AVAILABLE"
+            }
+
+            # Function to download models
+            download_models() {
+                echo "Starting model download..."
+                check_disk_space
+
+                {{- if or (eq (len .Values.models.download) 0) (has "all" .Values.models.download) }}
+                echo "Downloading ALL available models..."
+                docling-tools models download --output-dir="${MODELS_DIR}" --all
+                {{- else }}
+                echo "Downloading selected models: {{ join ", " .Values.models.download }}"
+                docling-tools models download --output-dir="${MODELS_DIR}" {{ join " " .Values.models.download }}
+                {{- end }}
+
+                # Create marker file with metadata
+                echo "Models downloaded at: $(date)" > "$MARKER_FILE"
+                echo "Models: {{ if or (eq (len .Values.models.download) 0) (has "all" .Values.models.download) }}all{{ else }}{{ join ", " .Values.models.download }}{{ end }}" >> "$MARKER_FILE"
+                echo "Chart version: {{ .Chart.Version }}" >> "$MARKER_FILE"
+                echo ""
+                echo "Model download completed!"
+            }
+
+            # Main logic: Check if models already exist (idempotency)
+            {{- if .Values.models.forceRedownload }}
+            echo "Force redownload enabled (forceRedownload=true)"
+            echo "Removing existing marker file..."
+            rm -f "$MARKER_FILE"
+            download_models
+            {{- else }}
+            if [ -f "$MARKER_FILE" ]; then
+                echo "Models already present (marker file exists):"
+                cat "$MARKER_FILE"
+                echo ""
+                echo "Skipping download for fast startup..."
+                echo "To force re-download, set models.forceRedownload=true"
+            else
+                echo "No marker file found, downloading models..."
+                download_models
+            fi
+            {{- end }}
+
+            echo "=================================================="
+            echo "Init container completed successfully"
+            echo "=================================================="
+        volumeMounts:
+        - name: models
+          mountPath: {{ .Values.models.artifactsPath }}
+        {{- with .Values.models.initContainer.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+      {{- end }}
       containers:
       - name: {{ .Chart.Name }}
         securityContext:
@@ -92,7 +172,7 @@ spec:
         {{- if .Values.models.enabled }}
         - name: models
           mountPath: {{ .Values.models.artifactsPath }}
-          readOnly: true
+          # Not readOnly - init container needs write access for model downloads
         {{- end }}
         {{- with .Values.livenessProbe }}
         livenessProbe:

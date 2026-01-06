@@ -137,7 +137,7 @@ resources:
 
 ## Model Persistence Configuration
 
-Model persistence allows downloading and storing AI models on a PersistentVolumeClaim instead of using pre-baked container images.
+Model persistence allows downloading and storing AI models on a PersistentVolumeClaim instead of using pre-baked container images. An **init container** downloads models before the main application starts.
 
 ### Benefits
 
@@ -145,6 +145,17 @@ Model persistence allows downloading and storing AI models on a PersistentVolume
 - **Selective model downloads**: Only download the models you need
 - **Model sharing**: Multiple pods share the same model storage
 - **Easier updates**: Update models without rebuilding container images
+- **Guaranteed readiness**: Init container ensures models are available before app starts
+- **Idempotent downloads**: Models only downloaded once (skipped on subsequent restarts)
+
+### How It Works
+
+1. PVC is created for model storage
+2. Pod starts with init container
+3. Init container checks if models exist (marker file)
+4. If models missing or `forceRedownload=true`, downloads models to PVC
+5. Init container completes
+6. Main container starts and loads models from PVC
 
 ### Configuration Parameters
 
@@ -153,31 +164,71 @@ Model persistence allows downloading and storing AI models on a PersistentVolume
 | `models.enabled` | bool | `false` | Enable model persistence |
 | `models.download` | list | `[layout, ...]` | List of models to download |
 | `models.artifactsPath` | string | `/modelcache` | Path where models are stored |
+| `models.forceRedownload` | bool | `false` | Force re-download on pod startup |
 | `models.pvc.storageClass` | string | `""` | Storage class for PVC |
 | `models.pvc.accessMode` | string | `ReadWriteOnce` | PVC access mode |
 | `models.pvc.size` | string | `15Gi` | PVC storage size |
 | `models.pvc.existingClaim` | string | `""` | Use existing PVC |
-| `models.job.backoffLimit` | int | `3` | Job retry attempts |
-| `models.job.ttlSecondsAfterFinished` | int | `3600` | Job cleanup time (seconds) |
-| `models.job.resources` | object | See values.yaml | Job resource requests/limits |
+| `models.initContainer.resources` | object | See values.yaml | Init container resources |
+| `models.initContainer.image.repository` | string | `""` | Override init container image |
+| `models.initContainer.image.tag` | string | `""` | Override init container tag |
+| `models.initContainer.image.pullPolicy` | string | `""` | Override pull policy |
 
 ### Available Models
 
-- **layout**: Document layout analysis
-- **tableformer**: Table structure recognition
-- **code_formula**: Code and formula detection
-- **picture_classifier**: Image classification
-- **smolvlm**: Small vision-language model
-- **granite_vision**: IBM Granite vision model
-- **easyocr**: OCR engine
+- **layout**: Document layout analysis (~2-3Gi)
+- **tableformer**: Table structure recognition (~1-2Gi)
+- **code_formula**: Code and formula detection (~1Gi)
+- **picture_classifier**: Image classification (~1Gi)
+- **smolvlm**: Small vision-language model (~5-7Gi)
+- **granite_vision**: IBM Granite vision model (~5-7Gi)
+- **easyocr**: OCR engine (~500Mi)
 
-### Storage Sizing Guide
+### Startup Time Expectations
 
-| Model Set | Recommended Size | Description |
-|-----------|------------------|-------------|
-| Basic models | 10-15Gi | layout, tableformer, code_formula, picture_classifier |
-| With vision models | 20-25Gi | Basic + smolvlm, granite_vision |
-| All models | 25-30Gi | Complete model set including easyocr |
+| Scenario | Init Container Time | App Startup Time | Total |
+|----------|---------------------|------------------|-------|
+| Models present (cached) | 5-10s | 30-60s | ~1 min |
+| First startup (basic 4 models) | 5-10 min | 30-60s | ~6-10 min |
+| First startup (all 7 models) | 10-20 min | 30-60s | ~11-21 min |
+| Force redownload | 5-20 min | 30-60s | ~6-21 min |
+
+### Monitoring Init Container
+
+```bash
+# Watch init container logs during download
+kubectl logs -f <pod-name> -c model-downloader
+
+# Check if init container completed
+kubectl get pod <pod-name> -o jsonpath='{.status.initContainerStatuses[*].state}'
+
+# Debug init container failure
+kubectl describe pod <pod-name>
+```
+
+### Force Re-Download Models
+
+To update models or recover from corrupted downloads:
+
+```bash
+# Set forceRedownload flag
+helm upgrade my-docling charts/docling-serve/ \
+  --set models.enabled=true \
+  --set models.forceRedownload=true \
+  --reuse-values
+
+# After successful update, disable the flag
+helm upgrade my-docling charts/docling-serve/ \
+  --set models.forceRedownload=false \
+  --reuse-values
+```
+
+Or delete and recreate the pod:
+
+```bash
+kubectl delete pod <pod-name>
+# Kubernetes recreates pod, init container re-runs
+```
 
 ### Example Configurations
 
@@ -185,6 +236,7 @@ See example files for complete configurations:
 - `examples/values-with-models.yaml` - Basic model persistence
 - `examples/values-with-all-models.yaml` - All models
 - `examples/values-gpu-with-models.yaml` - GPU with models
+
 
 ## Health Probes
 

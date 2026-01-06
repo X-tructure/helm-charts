@@ -58,9 +58,18 @@ Thank you for installing {{ .Chart.Name }}!
    - Artifacts path: {{ .Values.models.artifactsPath }}
    - Models to download: {{ if or (eq (len .Values.models.download) 0) (has "all" .Values.models.download) }}all{{ else }}{{ join ", " .Values.models.download }}{{ end }}
 
-   Check model download status:
-     kubectl get job {{ include "docling-serve.fullname" . }}-model-download -n {{ .Release.Namespace }}
-     kubectl logs job/{{ include "docling-serve.fullname" . }}-model-download -n {{ .Release.Namespace }}
+   Model download occurs via init container (before app starts).
+
+   Expected startup times:
+     - With models present: ~30-60 seconds (skips download)
+     - First startup (basic models): ~5-10 minutes
+     - First startup (all models): ~10-20 minutes
+
+   Monitor init container progress:
+     kubectl logs -f <pod-name> -c model-downloader -n {{ .Release.Namespace }}
+
+   Monitor main application:
+     kubectl logs -f <pod-name> -n {{ .Release.Namespace }}
 {{- else }}
 
    Model Persistence: DISABLED (using container-baked models)

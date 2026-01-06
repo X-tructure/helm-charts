@@ -571,6 +571,171 @@ EOF
 kubectl scale deployment/<release-name>-docling-serve --replicas=1
 ```
 
+## Model Persistence Issues (Init Container Pattern)
+
+> **Note:** This section applies to chart version 0.2.0+. For versions 0.1.x using the Job pattern, see the "Model Persistence Issues" section above.
+
+### Init Container Stuck in Running State
+
+**Symptom:** Init container runs for extended period without completing
+
+**Diagnosis:**
+```bash
+# Check init container logs
+kubectl logs <pod-name> -c model-downloader
+
+# Check disk space
+kubectl exec <pod-name> -c model-downloader -- df -h /modelcache
+```
+
+**Common Causes:**
+1. **Insufficient disk space**: PVC too small for selected models
+2. **Slow network**: Large model downloads timing out
+3. **Wrong model names**: Typo in `models.download` list
+
+**Solutions:**
+```bash
+# Increase PVC size (requires PVC deletion if not expandable)
+helm upgrade my-docling charts/docling-serve/ \
+  --set models.pvc.size=30Gi
+
+# Check model names are correct
+helm template my-docling charts/docling-serve/ \
+  --set models.enabled=true | grep "docling-tools models download"
+```
+
+### Init Container Fails with OOMKilled
+
+**Symptom:** Init container terminated with `OOMKilled` status
+
+**Diagnosis:**
+```bash
+kubectl describe pod <pod-name> | grep -A 5 "model-downloader"
+```
+
+**Solution:** Increase init container memory limits
+
+```bash
+helm upgrade my-docling charts/docling-serve/ \
+  --set models.initContainer.resources.limits.memory=4Gi \
+  --reuse-values
+```
+
+### Models Not Persisting Across Pod Restarts
+
+**Symptom:** Init container re-downloads models every time pod restarts
+
+**Possible Causes:**
+1. **No marker file created**: Download failing partway
+2. **PVC not persisting**: Check PVC status
+3. **Wrong PVC mounted**: Using wrong claim name
+
+**Diagnosis:**
+```bash
+# Check if PVC exists and is bound
+kubectl get pvc
+
+# Check marker file exists
+kubectl exec <pod-name> -- cat /modelcache/.models-downloaded
+
+# Verify PVC mounted correctly
+kubectl describe pod <pod-name> | grep -A 5 volumes
+```
+
+**Solution:**
+```bash
+# Manually verify PVC contents
+kubectl exec <pod-name> -- ls -lh /modelcache
+
+# If PVC empty, check init container logs for download errors
+kubectl logs <pod-name> -c model-downloader
+```
+
+### Force Re-Download Not Working
+
+**Symptom:** Set `forceRedownload=true` but models not re-downloading
+
+**Possible Causes:**
+1. **Old pod still running**: Need to delete pod to trigger init container
+2. **Cached ConfigMap**: Helm values not updated in cluster
+
+**Solution:**
+```bash
+# Verify value is set
+helm get values my-docling | grep forceRedownload
+
+# Delete pod to force recreation
+kubectl delete pod <pod-name>
+
+# Watch init container logs
+kubectl logs -f <new-pod-name> -c model-downloader
+```
+
+### Main Container Starts Before Models Downloaded
+
+**Symptom:** Application fails with "model not found" errors
+
+**This should not happen with init containers** - init containers are guaranteed to complete before main containers start. If this occurs:
+
+**Diagnosis:**
+```bash
+# Check init container status
+kubectl get pod <pod-name> -o jsonpath='{.status.initContainerStatuses[*]}'
+
+# Verify DOCLING_SERVE_ARTIFACTS_PATH set correctly
+kubectl exec <pod-name> -- env | grep ARTIFACTS_PATH
+```
+
+**Possible Cause:** Init container failed but pod still started (should not happen)
+
+**Solution:** Check Kubernetes events and pod status
+
+```bash
+kubectl describe pod <pod-name>
+kubectl get events --sort-by='.lastTimestamp'
+```
+
+### Updating Models with Init Container
+
+**How to update models to newer versions (v0.2.0+):**
+
+**Method 1: Force Re-download (Recommended)**
+```bash
+# Set forceRedownload flag
+helm upgrade my-docling charts/docling-serve/ \
+  --set models.forceRedownload=true \
+  --reuse-values
+
+# Wait for pod to restart and download
+kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=docling-serve --timeout=900s
+
+# Disable flag after successful download
+helm upgrade my-docling charts/docling-serve/ \
+  --set models.forceRedownload=false \
+  --reuse-values
+```
+
+**Method 2: Delete Pod**
+```bash
+# Delete pod to trigger re-creation
+kubectl delete pod -l app.kubernetes.io/name=docling-serve
+
+# Init container will check marker file and skip if models exist
+# To force download, use Method 1 or delete marker file first
+```
+
+**Method 3: Delete PVC (Nuclear Option)**
+```bash
+# Scale down to 0
+kubectl scale deployment/<release-name> --replicas=0
+
+# Delete PVC (all models lost)
+kubectl delete pvc <pvc-name>
+
+# Scale back up (triggers fresh download)
+kubectl scale deployment/<release-name> --replicas=1
+```
+
 ## GPU Issues
 
 ### GPU Not Detected
