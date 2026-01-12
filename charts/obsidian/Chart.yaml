@@ -1,18 +1,14 @@
 apiVersion: v2
 name: obsidian
 description: A Helm chart for deploying Obsidian note-taking application with web-based GUI
-
 # Chart type
 type: application
-
 # Chart version - follows SemVer 2
-version: 0.1.5
-
+version: 0.1.6
 # Application version - tracks Obsidian release version
 # Set to "latest" to auto-detect the latest Obsidian version from obsidianmd/obsidian-releases
 # In production, consider pinning to a specific version tag for reproducibility
-appVersion: "v1.10.6-ls104"
-
+appVersion: "v1.10.6-ls107"
 keywords:
   - obsidian
   - note-taking
@@ -20,15 +16,11 @@ keywords:
   - selkies
   - web-gui
   - markdown
-
 home: https://obsidian.md
 sources:
   - https://github.com/obsidianmd/obsidian-releases
   - https://github.com/linuxserver/docker-obsidian
-
-
 maintainers:
   - name: LinuxServer.io
     url: https://linuxserver.io
-
 icon: https://raw.githubusercontent.com/linuxserver/docker-templates/master/linuxserver.io/img/obsidian-logo.png
