@@ -58,10 +58,17 @@ spec:
           {{- toYaml .Values.frontend.readinessProbe | nindent 10 }}
         resources:
           {{- toYaml .Values.frontend.resources | nindent 10 }}
-      # Note: Frontend does not mount persistent volumes because:
-      # - Next.js frontend is stateless and does not store data
-      # - All data persistence is handled by the backend service
-      # - Only the backend needs access to /docetl-data PVC
+        volumeMounts:
+        - name: data
+          mountPath: /docetl-data
+      volumes:
+      - name: data
+        {{- if .Values.persistence.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ include "docetl.fullname" . }}-pvc
+        {{- else }}
+        emptyDir: {}
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
