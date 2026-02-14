@@ -3,6 +3,28 @@ entries:
   docetl:
   - apiVersion: v2
     appVersion: 0.2.6
+    created: "2026-02-14T15:03:51.018882878Z"
+    description: A Helm chart for DocETL - Document processing pipeline with LLM operations
+    digest: 4bc4476e95253cb40ea7c6281c925feb815b0e48ff64cf57fed838f9006b206d
+    home: https://docetl.org
+    icon: https://docetl.org/logo.png
+    keywords:
+    - docetl
+    - document-processing
+    - llm
+    - etl
+    maintainers:
+    - email: shreyashankar@berkeley.edu
+      name: DocETL Team
+    name: docetl
+    sources:
+    - https://github.com/ucbepic/docetl
+    type: application
+    urls:
+    - https://github.com/X-tructure/helm-charts/releases/download/docetl-1.1.0/docetl-1.1.0.tgz
+    version: 1.1.0
+  - apiVersion: v2
+    appVersion: 0.2.6
     created: "2025-12-31T06:15:21.242214732Z"
     description: A Helm chart for DocETL - Document processing pipeline with LLM operations
     digest: 7fed4ccd8231038b3bc13acd13fd80d24a90c502286c19e67b91bd0c271aba14
@@ -151,4 +173,4 @@ entries:
     urls:
     - https://github.com/X-tructure/helm-charts/releases/download/obsidian-0.1.5/obsidian-0.1.5.tgz
     version: 0.1.5
-generated: "2026-01-06T16:05:22.397801866Z"
+generated: "2026-02-14T15:03:51.018901724Z"
