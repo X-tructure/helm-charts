@@ -2,7 +2,7 @@ apiVersion: v2
 name: docetl
 description: A Helm chart for DocETL - Document processing pipeline with LLM operations
 type: application
-version: 1.0.1
+version: 1.1.0
 appVersion: "0.2.6"
 keywords:
   - docetl
