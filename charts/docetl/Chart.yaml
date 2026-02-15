@@ -2,7 +2,7 @@ apiVersion: v2
 name: docetl
 description: A Helm chart for DocETL - Multi-container pod architecture for document processing with LLM operations
 type: application
-version: 2.0.0
+version: 2.0.1
 appVersion: "0.2.6"
 keywords:
   - docetl
