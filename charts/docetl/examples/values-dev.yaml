@@ -1,8 +1,10 @@
 # Development environment configuration
 # Minimal resources for local development and testing
 
+# Single replica for development
+replicaCount: 1
+
 backend:
-  replicaCount: 1
   resources:
     limits:
       cpu: 1000m
@@ -12,7 +14,6 @@ backend:
       memory: 512Mi
 
 frontend:
-  replicaCount: 1
   resources:
     limits:
       cpu: 500m

@@ -31,15 +31,9 @@ spec:
             pathType: {{ .pathType }}
             backend:
               service:
-                {{- if eq .backend "backend" }}
-                name: {{ include "docetl.fullname" $ }}-backend
+                name: {{ include "docetl.fullname" $ }}
                 port:
-                  number: {{ $.Values.backend.service.port }}
-                {{- else if eq .backend "frontend" }}
-                name: {{ include "docetl.fullname" $ }}-frontend
-                port:
-                  number: {{ $.Values.frontend.service.port }}
-                {{- end }}
+                  name: {{ .backend }}
           {{- end }}
     {{- end }}
 {{- end }}

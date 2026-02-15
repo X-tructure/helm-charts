@@ -2,6 +2,10 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+# Replica count - applies to the entire pod (both frontend and backend containers)
+# Both containers scale together as a single unit
+replicaCount: 1
+
 # Docker image configuration
 image:
   # IMPORTANT: Update 'repository' to your full registry path before deployment
@@ -19,10 +23,14 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
-# Backend service configuration
-backend:
-  replicaCount: 1
+# Service configuration - single service exposing both frontend and backend ports
+service:
+  type: ClusterIP
+  frontendPort: 3000
+  backendPort: 8000
 
+# Backend container configuration
+backend:
   # Resource limits and requests
   resources:
     limits:
@@ -36,7 +44,7 @@ backend:
   livenessProbe:
     httpGet:
       path: /health
-      port: 8000
+      port: backend
     initialDelaySeconds: 30
     periodSeconds: 10
     timeoutSeconds: 5
@@ -45,16 +53,11 @@ backend:
   readinessProbe:
     httpGet:
       path: /health
-      port: 8000
+      port: backend
     initialDelaySeconds: 10
     periodSeconds: 5
     timeoutSeconds: 3
     failureThreshold: 3
-
-  service:
-    type: ClusterIP
-    port: 8000
-    targetPort: 8000
 
   # Environment variables (non-sensitive)
   env:
@@ -63,10 +66,8 @@ backend:
     BACKEND_RELOAD: "False"
     TEXT_FILE_ENCODINGS: "utf-8,latin1,cp1252,iso-8859-1"
 
-# Frontend service configuration
+# Frontend container configuration
 frontend:
-  replicaCount: 1
-
   # Resource limits and requests
   resources:
     limits:
@@ -80,7 +81,7 @@ frontend:
   livenessProbe:
     httpGet:
       path: /
-      port: 3000
+      port: frontend
     initialDelaySeconds: 30
     periodSeconds: 10
     timeoutSeconds: 5
@@ -89,20 +90,13 @@ frontend:
   readinessProbe:
     httpGet:
       path: /
-      port: 3000
+      port: frontend
     initialDelaySeconds: 10
     periodSeconds: 5
     timeoutSeconds: 3
     failureThreshold: 3
 
-  service:
-    type: ClusterIP
-    port: 3000
-    targetPort: 3000
-
   # Environment variables (non-sensitive)
-  # Note: NEXT_PUBLIC_BACKEND_HOST and NEXT_PUBLIC_BACKEND_PORT are dynamically
-  # generated in the ConfigMap to use the backend service DNS name
   env:
     FRONTEND_HOST: "0.0.0.0"
     FRONTEND_PORT: "3000"

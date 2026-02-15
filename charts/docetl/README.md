@@ -7,13 +7,14 @@ A production-ready Helm chart for deploying [DocETL](https://docetl.org), a powe
 
 ## Features
 
-- 🎯 **Multi-Service Architecture**: Separate backend (FastAPI) and frontend (Next.js) deployments
+- 🎯 **Multi-Container Pod Architecture**: Unified deployment with backend (FastAPI) and frontend (Next.js) in a single pod
 - 🔐 **Enterprise Security**: Multiple API key management options with best practices
 - 💾 **Persistent Storage**: Integrated PVC management for document processing data
 - 🌐 **Ingress Support**: Optional TLS-enabled external access
 - ⚖️ **High Availability**: Horizontal scaling with shared storage support
 - 📊 **Production Ready**: Resource limits, health checks, and anti-affinity rules
 - 🔄 **Automated Updates**: Optional workflow for tracking upstream releases
+- 🚀 **Simplified Networking**: Localhost communication between containers eliminates CORS complexity
 
 ## Quick Start
 
@@ -46,27 +47,47 @@ For detailed installation instructions, see the [Installation Guide](docs/instal
 
 ## Architecture
 
-DocETL consists of two main components:
+DocETL v2.0.0 uses a **multi-container pod architecture** where frontend and backend run as separate containers within the same pod:
 
 ```
-┌─────────────────┐      ┌─────────────────┐
-│   Frontend      │─────▶│    Backend      │
-│   (Next.js)     │      │   (FastAPI)     │
-│   Port 3000     │      │   Port 8000     │
-└────────┬────────┘      └────────┬────────┘
-         │                        │
-         │    ┌──────────────────┐│
-         └────│  Persistent      ││
-              │  Storage         ││
-              │  /docetl-data    ││
-              └──────────────────┘│
+┌─────────────────────────────────────────┐
+│           DocETL Pod                    │
+│  ┌──────────────┐   ┌──────────────┐   │
+│  │  Frontend    │───│   Backend    │   │
+│  │  (Next.js)   │   │  (FastAPI)   │   │
+│  │  Port 3000   │   │  Port 8000   │   │
+│  └──────┬───────┘   └──────┬───────┘   │
+│         │     localhost    │           │
+│         │ communication    │           │
+│         └──────────────────┘           │
+│                  │                     │
+└──────────────────┼─────────────────────┘
+                   │
+         ┌─────────▼─────────┐
+         │  Persistent       │
+         │  Storage          │
+         │  /docetl-data     │
+         └───────────────────┘
 ```
 
-- **Backend**: Python FastAPI application handling document processing and LLM operations
-- **Frontend**: Next.js web interface for pipeline management
-- **Persistent Storage**: Shared PVC for uploaded documents and processing results
+**Key Characteristics:**
 
-Both services use the same Docker image with different startup commands.
+- **Single Deployment**: Both containers in one pod, sharing network namespace
+- **Localhost Communication**: Frontend → Backend via `localhost`, eliminating DNS overhead and CORS
+- **Shared Volume**: Both containers access the same persistent storage
+- **Unified Scaling**: Frontend and backend scale together as a single unit
+- **Single Service**: One service with two ports (3000 for frontend, 8000 for backend)
+
+Both containers use the same Docker image with different startup commands.
+
+### Why Multi-Container Pod?
+
+This architecture provides:
+- ✅ Simplified networking (no service discovery)
+- ✅ Reduced operational complexity (one deployment vs two)
+- ✅ Better resource density
+- ✅ Natural fit for ReadWriteOnce storage
+- ✅ Aligned lifecycles (components always co-located)
 
 ## Configuration
 
@@ -81,8 +102,11 @@ image:
   tag: latest
 
 # OpenAI API Key (REQUIRED - see Security Guide)
-backend:
+secrets:
   openaiApiKey: "your-api-key-here"
+
+# Replica count (both frontend and backend scale together)
+replicaCount: 1
 
 # Persistence
 persistence:
@@ -99,12 +123,13 @@ ingress:
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `image.repository` | Docker image repository | `docetl` |
-| `backend.openaiApiKey` | OpenAI API key | `your_api_key_here` |
+| `secrets.openaiApiKey` | OpenAI API key | `""` |
+| `replicaCount` | Number of pod replicas (frontend & backend scale together) | `1` |
 | `persistence.enabled` | Enable persistent storage | `true` |
 | `persistence.size` | PVC size | `10Gi` |
 | `ingress.enabled` | Enable Ingress | `true` |
-| `backend.replicaCount` | Backend replicas | `1` |
-| `frontend.replicaCount` | Frontend replicas | `1` |
+| `service.frontendPort` | Frontend service port | `3000` |
+| `service.backendPort` | Backend service port | `8000` |
 
 For complete parameter reference, see the [Configuration Guide](docs/configuration.md).
 
@@ -112,8 +137,7 @@ For complete parameter reference, see the [Configuration Guide](docs/configurati
 
 The `examples/` directory contains ready-to-use configurations:
 
-- **[values-basic.yaml](examples/values-basic.yaml)**: Minimal setup for quick start
-- **[values-dev.yaml](examples/values-dev.yaml)**: Development environment with debugging
+- **[values-dev.yaml](examples/values-dev.yaml)**: Development environment with minimal resources
 - **[values-prod.yaml](examples/values-prod.yaml)**: Production-ready with HA, TLS, and security hardening
 
 ### Quick Examples
@@ -124,7 +148,7 @@ The `examples/` directory contains ready-to-use configurations:
 helm install docetl ./charts/docetl \
   -f examples/values-dev.yaml \
   --set image.repository=myregistry/docetl \
-  --set backend.openaiApiKey=sk-dev-key
+  --set secrets.openaiApiKey=sk-dev-key
 ```
 
 **Production deployment with TLS:**
@@ -133,7 +157,7 @@ helm install docetl ./charts/docetl \
 helm install docetl ./charts/docetl \
   -f examples/values-prod.yaml \
   --set image.repository=myregistry/docetl \
-  --set backend.openaiApiKey=sk-prod-key \
+  --set secrets.openaiApiKey=sk-prod-key \
   --set ingress.hosts[0].host=docetl.example.com
 ```
 
@@ -159,6 +183,7 @@ Comprehensive guides are available in the `docs/` directory:
 - **[Security Best Practices](docs/security.md)** - API key management, TLS, and hardening
 - **[Troubleshooting Guide](docs/troubleshooting.md)** - Common issues and solutions
 - **[Upgrade Guide](docs/upgrade.md)** - Version upgrades and rollback procedures
+- **[Upgrade to v2.0.0](docs/upgrade-2.0.md)** - Migration guide from v1.x to v2.0.0 (multi-container architecture)
 - **[Auto-Update Guide](docs/auto-update.md)** - Automated release tracking setup
 
 ## Accessing the Application
@@ -171,19 +196,28 @@ https://docetl.example.com
 
 ### Via Port Forwarding (Development)
 
+**Frontend:**
 ```bash
-kubectl port-forward svc/docetl-frontend 3000:3000
+kubectl port-forward svc/docetl 3000:3000
 # Access at http://localhost:3000
+```
+
+**Backend:**
+```bash
+kubectl port-forward svc/docetl 8000:8000
+# Access at http://localhost:8000/health
 ```
 
 ### Via LoadBalancer
 
 ```bash
-kubectl get svc docetl-frontend -o wide
-# Use EXTERNAL-IP
+kubectl get svc docetl -o wide
+# Use EXTERNAL-IP with port 3000 for frontend, 8000 for backend
 ```
 
 ## Upgrading
+
+### Standard Upgrades
 
 To upgrade an existing installation:
 
@@ -192,13 +226,29 @@ To upgrade an existing installation:
 helm upgrade docetl extreme_structure/docetl -f my-values.yaml
 
 # Upgrade to specific version
-helm upgrade docetl extreme_structure/docetl --version 1.2.0 -f my-values.yaml
+helm upgrade docetl extreme_structure/docetl --version 2.0.0 -f my-values.yaml
 
 # Upgrade with automatic rollback on failure
 helm upgrade docetl extreme_structure/docetl -f my-values.yaml --atomic
 ```
 
-For version-specific migration steps, see the [Upgrade Guide](docs/upgrade.md).
+### ⚠️ Upgrading from v1.x to v2.0.0
+
+Version 2.0.0 introduces a **breaking architectural change** from separate deployments to multi-container pods. This is a major version bump requiring manual migration.
+
+**Key Changes:**
+- Single deployment with two containers (was two separate deployments)
+- Single service with two ports (was two separate services)
+- Unified scaling (`replicaCount` instead of separate `backend.replicaCount` and `frontend.replicaCount`)
+- Localhost communication between containers (was Kubernetes Service DNS)
+
+**Migration Required:** See the [v2.0.0 Upgrade Guide](docs/upgrade-2.0.md) for complete migration instructions, including:
+- Values file transformation
+- Data backup procedures
+- Step-by-step migration process
+- Rollback instructions
+
+For other version-specific migration steps, see the [Upgrade Guide](docs/upgrade.md).
 
 ## Uninstalling
 
@@ -217,49 +267,73 @@ Common issues and solutions:
 |-------|-----------|
 | Pods not starting | Check resources: `kubectl describe pod <pod-name>` |
 | API key errors | Verify secret: `kubectl get secret docetl-secret` |
-| Backend connection fails | Check service: `kubectl get svc docetl-backend` |
+| Backend connection fails | Check service: `kubectl get svc docetl` |
 | PVC not binding | Check StorageClass: `kubectl get pvc` |
+| Frontend can't reach backend | Verify localhost config in ConfigMap: `kubectl get cm docetl-config -o yaml` |
 
 For detailed troubleshooting, see the [Troubleshooting Guide](docs/troubleshooting.md).
 
 ## Resource Requirements
 
+**Note:** In v2.0.0, each pod runs both frontend and backend containers. Total pod resources are the sum of both containers.
+
 ### Minimum (Development)
 
+Per pod (2 containers):
 - **Backend**: 250m CPU, 512Mi memory
 - **Frontend**: 100m CPU, 256Mi memory
+- **Total per pod**: 350m CPU, 768Mi memory
 - **Storage**: 5Gi
 
 ### Recommended (Production)
 
+Per pod (2 containers):
 - **Backend**: 1000m CPU, 2Gi memory
 - **Frontend**: 500m CPU, 1Gi memory
+- **Total per pod**: 1500m CPU, 3Gi memory
 - **Storage**: 50Gi
+
+### Scaling Example
+
+With `replicaCount: 3`:
+- Total cluster resources: 4.5 CPU, 9Gi memory (3 pods × resources per pod)
+- Shared storage: 50Gi (ReadWriteMany required)
 
 ## High Availability
 
 For production deployments with multiple replicas:
 
 ```yaml
-backend:
-  replicaCount: 3
-  affinity:
-    podAntiAffinity:
-      preferredDuringSchedulingIgnoredDuringExecution:
-        - weight: 100
-          podAffinityTerm:
-            labelSelector:
-              matchExpressions:
-                - key: app.kubernetes.io/component
-                  operator: In
-                  values: [backend]
-            topologyKey: kubernetes.io/hostname
+# Both frontend and backend scale together
+replicaCount: 3
 
+# Pod anti-affinity to spread across nodes
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - docetl
+          topologyKey: kubernetes.io/hostname
+
+# ReadWriteMany storage for multi-replica access
 persistence:
-  accessMode: ReadWriteMany  # Requires NFS or similar
-  storageClassName: "nfs-client"
+  accessMode: ReadWriteMany
+  storageClassName: "nfs-client"  # Must support RWX
   size: 50Gi
 ```
+
+**Important:** Multi-replica deployments require ReadWriteMany (RWX) storage. Compatible storage classes include:
+- NFS-based: `nfs-client`, `nfs-subdir-external-provisioner`
+- CephFS: `cephfs`
+- AWS EFS: `efs-sc`
+- Azure Files: `azurefile`
+- Google Filestore: `filestore`
 
 ## Building Docker Image
 

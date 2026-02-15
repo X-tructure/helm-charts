@@ -1,8 +1,11 @@
 # Production environment configuration
 # Higher resources and multiple replicas for production workloads
 
+# Multiple replicas for high availability
+# Both frontend and backend containers scale together as a single unit
+replicaCount: 2
+
 backend:
-  replicaCount: 2
   resources:
     limits:
       cpu: 4000m
@@ -12,7 +15,6 @@ backend:
       memory: 2Gi
 
 frontend:
-  replicaCount: 2
   resources:
     limits:
       cpu: 2000m
@@ -25,7 +27,9 @@ persistence:
   enabled: true
   size: 50Gi
   # IMPORTANT: For production with multiple replicas, use ReadWriteMany access mode
-  # This allows multiple backend pods to access the same volume simultaneously
+  # This allows multiple pods to access the same volume simultaneously
+  # Note: With the unified multi-container pod architecture, all containers in a pod
+  # share the same volume, but multiple pod replicas still require RWX for shared storage
   accessMode: ReadWriteMany
   # You MUST specify a storageClassName that supports ReadWriteMany (RWX) access
   # Examples of storage classes that support RWX:

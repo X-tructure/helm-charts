@@ -49,38 +49,6 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-Backend labels
-*/}}
-{{- define "docetl.backend.labels" -}}
-{{ include "docetl.labels" . }}
-app.kubernetes.io/component: backend
-{{- end }}
-
-{{/*
-Backend selector labels
-*/}}
-{{- define "docetl.backend.selectorLabels" -}}
-{{ include "docetl.selectorLabels" . }}
-app.kubernetes.io/component: backend
-{{- end }}
-
-{{/*
-Frontend labels
-*/}}
-{{- define "docetl.frontend.labels" -}}
-{{ include "docetl.labels" . }}
-app.kubernetes.io/component: frontend
-{{- end }}
-
-{{/*
-Frontend selector labels
-*/}}
-{{- define "docetl.frontend.selectorLabels" -}}
-{{ include "docetl.selectorLabels" . }}
-app.kubernetes.io/component: frontend
-{{- end }}
-
-{{/*
 Create the name of the service account to use
 */}}
 {{- define "docetl.serviceAccountName" -}}

@@ -15,12 +15,12 @@ spec:
       args:
         - '--spider'
         - '--timeout=30'
-        - 'http://{{ include "docetl.fullname" . }}-backend:{{ .Values.backend.service.port }}/health'
+        - 'http://{{ include "docetl.fullname" . }}:{{ .Values.service.backendPort }}/health'
     - name: test-frontend
       image: busybox:latest
       command: ['wget']
       args:
         - '--spider'
         - '--timeout=30'
-        - 'http://{{ include "docetl.fullname" . }}-frontend:{{ .Values.frontend.service.port }}/'
+        - 'http://{{ include "docetl.fullname" . }}:{{ .Values.service.frontendPort }}/'
   restartPolicy: Never

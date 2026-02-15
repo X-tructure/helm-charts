@@ -1,33 +1,22 @@
----
-# Backend ConfigMap
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "docetl.fullname" . }}-backend-config
+  name: {{ include "docetl.fullname" . }}-config
   labels:
-    {{- include "docetl.backend.labels" . | nindent 4 }}
+    {{- include "docetl.labels" . | nindent 4 }}
 data:
+  # Backend Configuration
   {{- range $key, $value := .Values.backend.env }}
   {{ $key }}: {{ $value | quote }}
   {{- end }}
-  # Dynamic backend configuration
-  BACKEND_ALLOW_ORIGINS: "http://{{ include "docetl.fullname" . }}-frontend:{{ .Values.frontend.service.port }}"
+  # Backend dynamic configuration - uses localhost for inter-container communication
+  BACKEND_ALLOW_ORIGINS: "http://localhost:3000"
   DOCETL_HOME_DIR: "/docetl-data"
 
----
-# Frontend ConfigMap
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ include "docetl.fullname" . }}-frontend-config
-  labels:
-    {{- include "docetl.frontend.labels" . | nindent 4 }}
-data:
+  # Frontend Configuration
   {{- range $key, $value := .Values.frontend.env }}
   {{ $key }}: {{ $value | quote }}
   {{- end }}
-  # Dynamic backend connection configuration
-  # Uses the backend service DNS name for inter-pod communication
-  NEXT_PUBLIC_BACKEND_HOST: "{{ include "docetl.fullname" . }}-backend"
-  NEXT_PUBLIC_BACKEND_PORT: "{{ .Values.backend.service.port }}"
-
+  # Frontend dynamic configuration - uses localhost to connect to backend container
+  NEXT_PUBLIC_BACKEND_HOST: "localhost"
+  NEXT_PUBLIC_BACKEND_PORT: "8000"

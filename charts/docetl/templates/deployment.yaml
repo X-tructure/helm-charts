@@ -1,24 +1,74 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "docetl.fullname" . }}-frontend
+  name: {{ include "docetl.fullname" . }}
   labels:
-    {{- include "docetl.frontend.labels" . | nindent 4 }}
+    {{- include "docetl.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.frontend.replicaCount }}
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "docetl.frontend.selectorLabels" . | nindent 6 }}
+      {{- include "docetl.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "docetl.frontend.selectorLabels" . | nindent 8 }}
+        {{- include "docetl.selectorLabels" . | nindent 8 }}
     spec:
       {{- include "docetl.imagePullSecrets" . | nindent 6 }}
       serviceAccountName: {{ include "docetl.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
+      # Backend Container
+      - name: backend
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+        image: {{ include "docetl.image" . }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command:
+          - "python3"
+          - "server/app/main.py"
+        ports:
+        - name: backend
+          containerPort: 8000
+          protocol: TCP
+        env:
+        # Load environment variables from ConfigMap
+        {{- range $key, $value := .Values.backend.env }}
+        - name: {{ $key }}
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "docetl.fullname" $ }}-config
+              key: {{ $key }}
+        {{- end }}
+        # Load dynamic backend configuration from ConfigMap
+        - name: BACKEND_ALLOW_ORIGINS
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "docetl.fullname" . }}-config
+              key: BACKEND_ALLOW_ORIGINS
+        - name: DOCETL_HOME_DIR
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "docetl.fullname" . }}-config
+              key: DOCETL_HOME_DIR
+        # Load sensitive environment variables from Secret
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "docetl.fullname" . }}-secret
+              key: openai-api-key
+        livenessProbe:
+          {{- toYaml .Values.backend.livenessProbe | nindent 10 }}
+        readinessProbe:
+          {{- toYaml .Values.backend.readinessProbe | nindent 10 }}
+        resources:
+          {{- toYaml .Values.backend.resources | nindent 10 }}
+        volumeMounts:
+        - name: data
+          mountPath: /docetl-data
+
+      # Frontend Container
       - name: frontend
         securityContext:
           {{- toYaml .Values.securityContext | nindent 10 }}
@@ -29,8 +79,8 @@ spec:
           - "-c"
           - "cd website && HOST=0.0.0.0 PORT=3000 npm run start"
         ports:
-        - name: http
-          containerPort: {{ .Values.frontend.service.targetPort }}
+        - name: frontend
+          containerPort: 3000
           protocol: TCP
         env:
         # Load environment variables from ConfigMap
@@ -38,19 +88,19 @@ spec:
         - name: {{ $key }}
           valueFrom:
             configMapKeyRef:
-              name: {{ include "docetl.fullname" $ }}-frontend-config
+              name: {{ include "docetl.fullname" $ }}-config
               key: {{ $key }}
         {{- end }}
         # Load dynamic backend connection configuration from ConfigMap
         - name: NEXT_PUBLIC_BACKEND_HOST
           valueFrom:
             configMapKeyRef:
-              name: {{ include "docetl.fullname" . }}-frontend-config
+              name: {{ include "docetl.fullname" . }}-config
               key: NEXT_PUBLIC_BACKEND_HOST
         - name: NEXT_PUBLIC_BACKEND_PORT
           valueFrom:
             configMapKeyRef:
-              name: {{ include "docetl.fullname" . }}-frontend-config
+              name: {{ include "docetl.fullname" . }}-config
               key: NEXT_PUBLIC_BACKEND_PORT
         livenessProbe:
           {{- toYaml .Values.frontend.livenessProbe | nindent 10 }}
@@ -61,6 +111,7 @@ spec:
         volumeMounts:
         - name: data
           mountPath: /docetl-data
+
       volumes:
       - name: data
         {{- if .Values.persistence.enabled }}
