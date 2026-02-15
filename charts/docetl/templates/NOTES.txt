@@ -23,30 +23,34 @@ NOTE: TLS is not enabled. Consider enabling it for production use.
 
 To access your DocETL application:
 
-1. Get the backend service URL:
-   {{- if contains "NodePort" .Values.backend.service.type }}
-   export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "docetl.fullname" . }}-backend)
-   export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
-   echo "Backend: http://$NODE_IP:$NODE_PORT"
-   {{- else if contains "LoadBalancer" .Values.backend.service.type }}
-   export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "docetl.fullname" . }}-backend --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
-   echo "Backend: http://$SERVICE_IP:{{ .Values.backend.service.port }}"
-   {{- else if contains "ClusterIP" .Values.backend.service.type }}
-   kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "docetl.fullname" . }}-backend {{ .Values.backend.service.port }}:{{ .Values.backend.service.port }}
-   echo "Backend: http://127.0.0.1:{{ .Values.backend.service.port }}"
-   {{- end }}
+DocETL uses a unified service with two ports:
+- Frontend: port {{ .Values.service.frontendPort }}
+- Backend: port {{ .Values.service.backendPort }}
 
-2. Get the frontend service URL:
-   {{- if contains "NodePort" .Values.frontend.service.type }}
-   export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "docetl.fullname" . }}-frontend)
+1. Access the frontend (web UI):
+   {{- if contains "NodePort" .Values.service.type }}
+   export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[?(@.name=='frontend')].nodePort}" services {{ include "docetl.fullname" . }})
    export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
    echo "Frontend: http://$NODE_IP:$NODE_PORT"
-   {{- else if contains "LoadBalancer" .Values.frontend.service.type }}
-   export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "docetl.fullname" . }}-frontend --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
-   echo "Frontend: http://$SERVICE_IP:{{ .Values.frontend.service.port }}"
-   {{- else if contains "ClusterIP" .Values.frontend.service.type }}
-   kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "docetl.fullname" . }}-frontend {{ .Values.frontend.service.port }}:{{ .Values.frontend.service.port }}
-   echo "Frontend: http://127.0.0.1:{{ .Values.frontend.service.port }}"
+   {{- else if contains "LoadBalancer" .Values.service.type }}
+   export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "docetl.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+   echo "Frontend: http://$SERVICE_IP:{{ .Values.service.frontendPort }}"
+   {{- else if contains "ClusterIP" .Values.service.type }}
+   kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "docetl.fullname" . }} {{ .Values.service.frontendPort }}:{{ .Values.service.frontendPort }}
+   echo "Frontend: http://127.0.0.1:{{ .Values.service.frontendPort }}"
+   {{- end }}
+
+2. Access the backend API (optional):
+   {{- if contains "NodePort" .Values.service.type }}
+   export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[?(@.name=='backend')].nodePort}" services {{ include "docetl.fullname" . }})
+   export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+   echo "Backend: http://$NODE_IP:$NODE_PORT"
+   {{- else if contains "LoadBalancer" .Values.service.type }}
+   export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "docetl.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+   echo "Backend: http://$SERVICE_IP:{{ .Values.service.backendPort }}"
+   {{- else if contains "ClusterIP" .Values.service.type }}
+   kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "docetl.fullname" . }} {{ .Values.service.backendPort }}:{{ .Values.service.backendPort }}
+   echo "Backend: http://127.0.0.1:{{ .Values.service.backendPort }}/health"
    {{- end }}
 {{- end }}
 
@@ -54,10 +58,18 @@ Check the status of your pods:
 
   $ kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/instance={{ .Release.Name }}"
 
+Note: Each pod runs both frontend and backend containers (multi-container architecture).
+
 View logs:
 
-  Backend:  $ kubectl logs --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/component=backend" -f
-  Frontend: $ kubectl logs --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/component=frontend" -f
+  # View both containers:
+  $ kubectl logs --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/instance={{ .Release.Name }}" --all-containers -f
+
+  # View backend container only:
+  $ kubectl logs --namespace {{ .Release.Namespace }} deployment/{{ include "docetl.fullname" . }} -c backend -f
+
+  # View frontend container only:
+  $ kubectl logs --namespace {{ .Release.Namespace }} deployment/{{ include "docetl.fullname" . }} -c frontend -f
 
 {{- if not (contains "your_api_key_here" .Values.secrets.openaiApiKey) }}
 {{- else }}
@@ -70,9 +82,11 @@ Please update the secret with your actual API key:
       --namespace {{ .Release.Namespace }} \
       --dry-run=client -o yaml | kubectl apply -f -
 
-Then restart the backend pods:
+Then restart the deployment:
 
-  $ kubectl rollout restart deployment/{{ include "docetl.fullname" . }}-backend --namespace {{ .Release.Namespace }}
+  $ kubectl rollout restart deployment/{{ include "docetl.fullname" . }} --namespace {{ .Release.Namespace }}
 {{- end }}
 
+Architecture: Multi-container pod (frontend + backend in same pod, localhost communication)
+For migration from v1.x, see: https://github.com/X-tructure/helm-charts/blob/main/charts/docetl/docs/upgrade-2.0.md
 For more information, visit: https://docetl.org
